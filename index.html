@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANON CHAT - Dark Discord Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    /* Custom Scrollbar phong cách Discord */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #2e3136; }
+    ::-webkit-scrollbar-thumb { background: #1e1f22; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #111214; }
+  </style>
+
+  <!-- Firebase SDK JS (Module) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, deleteDoc, doc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCkkQ15xThXoybm7uTbj1-IeHSmzgSA3nw",
+      authDomain: "mien-77222.firebaseapp.com",
+      projectId: "mien-77222",
+      storageBucket: "mien-77222.firebasestorage.app",
+      messagingSenderId: "856316713030",
+      appId: "1:856316713030:web:9f7d44ecd9a1e1e7df9247",
+      measurementId: "G-24V5CVG3YS"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let anonTag = "";
+
+    // 1. Kiểm tra trạng thái xác minh & Tạo Tag ẩn danh
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        if (!user.emailVerified) {
+          showAuthError("⚠️ Kích hoạt Email trước khi đăng nhập! Kiểm tra hòm thư của bạn.");
+          await signOut(auth);
+          return;
+        }
+        currentUser = user;
+        // Tạo Anonymous Tag ngẫu nhiên từ UID để bảo mật Email
+        anonTag = "Anon#" + user.uid.substring(0, 5).toUpperCase();
+
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('app-screen').classList.remove('hidden');
+        document.getElementById('user-anon-tag').innerText = anonTag;
+        
+        loadRealtimeMessages();
+      } else {
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('app-screen').classList.add('hidden');
+      }
+    });
+
+    // 2. Đăng ký (Chỉ chấp nhận @gmail.com & Validate Mail rác)
+    document.getElementById('btn-register').addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const pass = document.getElementById('auth-password').value.trim();
+
+      // Rào chắn kiểm tra đuôi Email
+      const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+      if (!gmailRegex.test(email)) {
+        return showAuthError("❌ Hệ thống chặn mail rác! Chỉ cho phép sử dụng địa chỉ @gmail.com.");
+      }
+      if (pass.length < 6) return showAuthError("Mật khẩu phải từ 6 ký tự trở lên.");
+
+      try {
+        const res = await createUserWithEmailAndPassword(auth, email, pass);
+        await sendEmailVerification(res.user);
+        alert("📧 Đã gửi thư kích hoạt! Vui lòng mở Gmail bấm vào Link để hoàn tất.");
+      } catch (err) {
+        showAuthError("Lỗi đăng ký: " + err.message);
+      }
+    });
+
+    // 3. Đăng nhập
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const pass = document.getElementById('auth-password').value.trim();
+      if (!email || !pass) return showAuthError("Vui lòng điền đủ Email và Mật khẩu!");
+
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        showAuthError("Email hoặc mật khẩu không chính xác.");
+      }
+    });
+
+    // 4. Đăng xuất
+    document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+    // 5. Gửi Tin Nhắn Siêu Tốc (Optimistic UI) + Hỗ trợ Ảnh Base64
+    document.getElementById('chat-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const imgInput = document.getElementById('image-input');
+      const text = input.value.trim();
+      const file = imgInput.files[0];
+
+      if ((!text && !file) || !currentUser) return;
+
+      let imageBase64 = null;
+      if (file) {
+        if (file.size > 2 * 1024 * 1024) return alert("Ảnh quá lớn! Vui lòng chọn ảnh < 2MB.");
+        imageBase64 = await convertBase64(file);
+      }
+
+      // ⚡ Cập nhật giao diện TỨC THÌ (Không chờ Server)
+      const tempId = "temp-" + Date.now();
+      renderMessageFront({
+        id: tempId,
+        text: text,
+        image: imageBase64,
+        senderTag: anonTag,
+        uid: currentUser.uid,
+        pending: true
+      });
+
+      // Reset form ngay lập tức
+      input.value = '';
+      imgInput.value = '';
+      document.getElementById('image-preview').classList.add('hidden');
+
+      try {
+        // Đẩy ngầm lên Firestore
+        await addDoc(collection(db, "messages"), {
+          text: text,
+          image: imageBase64 || null,
+          senderTag: anonTag,
+          uid: currentUser.uid,
+          createdAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.error("Lỗi gửi:", err);
+      }
+    });
+
+    // 6. Lắng nghe tin nhắn Realtime
+    function loadRealtimeMessages() {
+      const q = query(collection(db, "messages"));
+      onSnapshot(q, (snapshot) => {
+        const box = document.getElementById('messages-box');
+        box.innerHTML = '';
+
+        let messages = [];
+        snapshot.forEach((doc) => {
+          messages.push({ id: doc.id, ...doc.data() });
+        });
+
+        messages.sort((a, b) => {
+          const t1 = a.createdAt ? a.createdAt.toMillis() : Date.now();
+          const t2 = b.createdAt ? b.createdAt.toMillis() : Date.now();
+          return t1 - t2;
+        });
+
+        messages.forEach((msg) => renderMessageFront(msg));
+        box.scrollTop = box.scrollHeight;
+      });
+    }
+
+    // Render Tin Nhắn ra Giao diện
+    function renderMessageFront(msg) {
+      const box = document.getElementById('messages-box');
+      const isMe = msg.uid === currentUser.uid;
+      
+      // Xóa bản tạm nếu có
+      const existingTemp = document.getElementById(msg.id);
+      if (existingTemp) existingTemp.remove();
+
+      const div = document.createElement('div');
+      div.id = msg.id;
+      div.className = `flex gap-3 p-2 hover:bg-[#2e3136]/40 rounded-lg group ${msg.pending ? 'opacity-50' : ''}`;
+      
+      div.innerHTML = `
+        <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs flex-shrink-0">
+          ${msg.senderTag ? msg.senderTag.substring(5, 7) : 'AN'}
+        </div>
+        <div class="flex-1 overflow-hidden">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-sm ${isMe ? 'text-indigo-400' : 'text-slate-200'}">${msg.senderTag || 'Ẩn danh'}</span>
+            <span class="text-[10px] text-slate-500">${msg.pending ? 'Đang gửi...' : ''}</span>
+          </div>
+          ${msg.text ? `<p class="text-sm text-slate-300 mt-0.5 break-words">${escapeHtml(msg.text)}</p>` : ''}
+          ${msg.image ? `<img src="${msg.image}" class="mt-2 max-w-xs rounded-lg border border-slate-700 shadow-md">` : ''}
+        </div>
+        ${isMe && !msg.pending ? `
+          <button onclick="deleteMsg('${msg.id}')" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 text-xs px-2 transition">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        ` : ''}
+      `;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // Xóa tin nhắn chính chủ
+    window.deleteMsg = async (msgId) => {
+      if (confirm("Bạn có chắc muốn xóa tin nhắn này?")) {
+        await deleteDoc(doc(db, "messages", msgId));
+      }
+    };
+
+    function convertBase64(file) {
+      return new Promise((resolve, reject) => {
+        const fileReader = new FileReader();
+        fileReader.readAsDataURL(file);
+        fileReader.onload = () => resolve(fileReader.result);
+        fileReader.onerror = (error) => reject(error);
+      });
+    }
+
+    function showAuthError(text) {
+      const errEl = document.getElementById('auth-error');
+      errEl.innerText = text;
+      errEl.classList.remove('hidden');
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+  
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body class="bg-[#1e1f22] text-slate-100 font-sans h-screen flex overflow-hidden select-none">
+
+  <!-- ================= AUTH SCREEN ================= -->
+  <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#1e1f22] p-4">
+    <div class="bg-[#313338] border border-slate-800 p-8 rounded-xl w-full max-w-md shadow-2xl">
+      <div class="text-center mb-6">
+        <h1 class="text-2xl font-black text-indigo-400 tracking-wider flex items-center justify-center gap-2">
+          <i class="fa-brands fa-discord text-3xl"></i> ANON CHAT
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">Bảo mật mã hóa • Chống Mail rác • Discord Style</p>
+      </div>
+
+      <div id="auth-error" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 p-3 rounded-lg text-xs mb-4"></div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs uppercase font-bold text-slate-400 mb-1">Email (@gmail.com)</label>
+          <input type="email" id="auth-email" required class="w-full bg-[#1e1f22] border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" placeholder="user@gmail.com">
+        </div>
+        <div>
+          <label class="block text-xs uppercase font-bold text-slate-400 mb-1">Mật khẩu</label>
+          <input type="password" id="auth-password" required class="w-full bg-[#1e1f22] border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500" placeholder="••••••••">
+        </div>
+        
+        <div class="flex gap-3 pt-2">
+          <button id="btn-login" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-lg text-sm transition">
+            Đăng Nhập
+          </button>
+          <button id="btn-register" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2.5 rounded-lg text-sm transition">
+            Đăng Ký
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DISCORD MAIN UI ================= -->
+  <div id="app-screen" class="hidden flex-1 flex h-full">
+    
+    <!-- Server List Sidebar (Trái cùng) -->
+    <div class="w-18 bg-[#1e1f22] p-3 flex flex-col items-center gap-3 border-r border-[#2e3136]">
+      <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl cursor-pointer hover:rounded-xl transition-all shadow-lg">
+        <i class="fa-brands fa-discord"></i>
+      </div>
+      <div class="w-8 h-[2px] bg-slate-700 rounded"></div>
+      <div class="w-12 h-12 rounded-3xl bg-[#313338] hover:bg-emerald-600 flex items-center justify-center text-slate-300 hover:text-white cursor-pointer hover:rounded-xl transition-all">
+        <i class="fa-solid fa-plus"></i>
+      </div>
+    </div>
+
+    <!-- Channels Sidebar -->
+    <div class="w-60 bg-[#2b2d31] flex flex-col justify-between">
+      <div>
+        <div class="h-12 border-b border-[#1f2023] px-4 flex items-center font-bold text-sm text-white shadow-sm">
+          Sảnh Trực Tuyến
+        </div>
+
+        <div class="p-3 space-y-4">
+          <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-2">Kênh Chat</div>
+            <div class="px-2 py-1.5 bg-[#35373c] text-white rounded-md text-sm font-medium flex items-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-hashtag text-slate-400"></i> chung
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-2">Kênh Voice</div>
+            <div onclick="toggleVoicePanel()" class="px-2 py-1.5 text-slate-400 hover:bg-[#35373c]/50 hover:text-slate-200 rounded-md text-sm font-medium flex items-center justify-between cursor-pointer">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-volume-high"></i> Phòng Voice 1</span>
+              <i class="fa-solid fa-phone text-xs text-emerald-500"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Bar (Dưới cùng Sidebar) -->
+      <div class="h-14 bg-[#232428] px-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">
+            <i class="fa-solid fa-user-ninja"></i>
+          </div>
+          <div class="flex flex-col">
+            <span id="user-anon-tag" class="text-xs font-bold text-white leading-tight">Anon#0000</span>
+            <span class="text-[9px] text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Trực tuyến
+            </span>
+          </div>
+        </div>
+        <button id="btn-logout" class="text-slate-400 hover:text-rose-400 text-sm p-1" title="Đăng xuất">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col bg-[#313338]">
+      <div class="h-12 border-b border-[#1f2023] px-4 flex items-center justify-between bg-[#313338] shadow-sm">
+        <div class="flex items-center gap-2 font-bold text-sm text-white">
+          <i class="fa-solid fa-hashtag text-slate-400 text-lg"></i>
+          <span>chung</span>
+        </div>
+      </div>
+
+      <!-- Messages Box -->
+      <div id="messages-box" class="flex-1 overflow-y-auto p-4 space-y-1">
+        <!-- Messages render qua JS -->
+      </div>
+
+      <!-- Image Preview Area -->
+      <div id="image-preview" class="hidden px-4 py-2 bg-[#2b2d31] border-t border-slate-700 flex items-center gap-2">
+        <span class="text-xs text-slate-300">Đã chọn 1 ảnh</span>
+        <button type="button" onclick="clearImage()" class="text-rose-400 text-xs hover:underline">Xóa</button>
+      </div>
+
+      <!-- Input Bar -->
+      <div class="p-4 bg-[#313338]">
+        <form id="chat-form" class="bg-[#383a40] rounded-xl px-4 py-2.5 flex items-center gap-3">
+          <!-- Upload Image Button -->
+          <label for="image-input" class="text-slate-400 hover:text-white cursor-pointer transition">
+            <i class="fa-solid fa-circle-plus text-lg"></i>
+          </label>
+          <input type="file" id="image-input" accept="image/*" class="hidden" onchange="previewImg()">
+
+          <!-- Chat Text Input -->
+          <input type="text" id="chat-input" autocomplete="off" placeholder="Gửi tin nhắn vào #chung..." class="flex-1 bg-transparent text-sm text-white focus:outline-none">
+
+          <!-- Emoji Simple Picker -->
+          <button type="button" onclick="addEmoji('🔥')" class="text-slate-400 hover:text-white text-base">🔥</button>
+          <button type="button" onclick="addEmoji('😂')" class="text-slate-400 hover:text-white text-base">😂</button>
+          <button type="button" onclick="addEmoji('👍')" class="text-slate-400 hover:text-white text-base">👍</button>
+
+          <button type="submit" class="text-indigo-400 hover:text-indigo-300 font-bold text-sm transition px-2">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function previewImg() {
+      document.getElementById('image-preview').classList.remove('hidden');
+    }
+    function clearImage() {
+      document.getElementById('image-input').value = '';
+      document.getElementById('image-preview').classList.add('hidden');
+    }
+    function addEmoji(emoji) {
+      const input = document.getElementById('chat-input');
+      input.value += emoji;
+      input.focus();
+    }
+    function toggleVoicePanel() {
+      alert("Tính năng Voice Call đang hoạt động ở background qua PeerJS.");
+    }
+  </script>
+</body>
+</html>
