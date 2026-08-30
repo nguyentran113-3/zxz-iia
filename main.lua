@@ -1,100 +1,112 @@
+-- Tối ưu cho Mobile (Delta, Fluxus, Hydrogen, Codex...)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local LocalPlayer = Players.LocalPlayer
 
--- Tải giao diện Orion UI
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({
-    Name = "⚡ Greedy Growers | Solo Auto-Harvest", 
-    HidePremium = false, 
-    SaveConfig = true, 
-    ConfigFolder = "GreedyGrowersVIP"
-})
+-- Load Library UI chuẩn Mobile (Kavo UI)
+local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Kavo.CreateLib("⚡ Greedy Growers Mobile VIP", "Midnight")
 
-local MainTab = Window:MakeTab({Name = "Hệ Thống Sét", Icon = "rbxassetid://4483345998"})
-local StatusLabel = MainTab:AddLabel("Trạng Thái: 🟢 Đang chờ trồng cây...")
+-- TAB CHÍNH
+local MainTab = Window:NewTab("⚡ Auto Harvest")
+local MainSection = MainTab:NewSection("Hệ Thống Bắt Sét & Nhặt Cây")
 
-local AutoHarvest = true
-local SoundAlert = true
+-- BIẾN ĐIỀU KHIỂN
+local AutoHarvestEnabled = true
+local MyPlot = nil
 
-MainTab:AddToggle({
-    Name = "Tự Động Thu Hoạch Khi Sét Đánh",
-    Default = true,
-    Callback = function(Value) AutoHarvest = Value end
-})
+MainSection:NewToggle("Tự Động Nhặt Cây (Auto Pick)", "Tự nhặt cây khi phát hiện sét ở plot của bạn", function(state)
+    AutoHarvestEnabled = state
+end)
 
--- Hàm tìm Plot (Ô đất) của chính người chơi
-local function GetMyPlot()
-    for _, plot in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
-        if plot:FindFirstChild("Owner") and plot.Owner.Value == LocalPlayer then
-            return plot
-        elseif plot.Name == LocalPlayer.Name then
+local StatusLabel = MainSection:NewLabel("Trạng thái: 🟢 Đang tìm Plot của bạn...")
+local MultiplierLabel = MainSection:NewLabel("Hệ số hiện tại: x1.0")
+
+-- 1. HÀM TÌM PLOT ĐẤT CỦA BẠN (TỰ ĐỘNG CHÍNH XÁC)
+local function FindMyPlot()
+    local plots = workspace:FindFirstChild("Plots") or workspace:FindFirstChild("PlotsFolder") or workspace
+    for _, plot in pairs(plots:GetChildren()) do
+        -- Kiểm tra Owner qua Value hoặc Tên
+        local ownerVal = plot:FindFirstChild("Owner") or plot:FindFirstChild("Player")
+        if (ownerVal and ownerVal.Value == LocalPlayer) or string.find(plot.Name, LocalPlayer.Name) then
             return plot
         end
     end
     return nil
 end
 
--- Hàm tự động kích hoạt Nút Harvest (Bán cây) của bản thân
-local function HarvestMyCrop()
-    -- Cách 1: Fire RemoteEvent Harvest (Thay tên RemoteEvent chuẩn nếu game dùng Remote)
-    local harvestRemote = ReplicatedStorage:FindFirstChild("Harvest", true) or ReplicatedStorage:FindFirstChild("SellCrop", true)
-    if harvestRemote and harvestRemote:IsA("RemoteEvent") then
-        harvestRemote:FireServer()
+-- 2. HÀM KÍCH HOẠT NHẶT CÂY TỰ ĐỘNG (MOBILE COMPATIBLE)
+local function AutoPickCrop()
+    -- Cách 1: Gửi Remote Event trực tiếp về Server (Nhanh nhất)
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") and (string.find(string.lower(v.Name), "harvest") or string.find(string.lower(v.Name), "pick") or string.find(string.lower(v.Name), "collect")) then
+            v:FireServer()
+        end
     end
 
-    -- Cách 2: Giả lập bấm nút Thu hoạch trên màn hình GUI
+    -- Cách 2: Tự động bấm nút Harvest trên GUI Mobile
     local pGui = LocalPlayer:FindFirstChild("PlayerGui")
     if pGui then
         for _, btn in pairs(pGui:GetDescendants()) do
-            if btn:IsA("TextButton") or btn:IsA("ImageButton") then
-                if string.find(string.lower(btn.Name), "harvest") or string.find(string.lower(btn.Name), "sell") then
-                    for _, signal in pairs({"MouseButton1Click", "Activated"}) do
-                        pcall(function() firesignal(btn[signal]) end)
-                    end
+            if (btn:IsA("TextButton") or btn:IsA("ImageButton")) and btn.Visible then
+                local btnText = string.lower(btn.Name .. (btn:IsA("TextButton") and btn.Text or ""))
+                if string.find(btnText, "harvest") or string.find(btnText, "pick") or string.find(btnText, "collect") or string.find(btnText, "nhặt") then
+                    -- Mô phỏng thao tác chạm màn hình Mobile
+                    local pos = btn.AbsolutePosition
+                    local size = btn.AbsoluteSize
+                    VirtualInputManager:SendTouchEvent(0, pos.X + size.X/2, pos.Y + size.Y/2, 0, game, 0)
+                    task.wait(0.05)
+                    VirtualInputManager:SendTouchEvent(0, pos.X + size.X/2, pos.Y + size.Y/2, 1, game, 0)
                 end
             end
         end
     end
 end
 
--- Theo dõi ô đất của riêng bạn
+-- 3. VÒNG LẶP THEO DÕI SÉT & HỆ SỐ X (CHẠY NGẦM KHÔNG LAG)
 task.spawn(function()
     while task.wait(0.1) do
-        local myPlot = GetMyPlot()
-        if myPlot then
-            local crop = myPlot:FindFirstChild("Crop") or myPlot:FindFirstChildOfClass("Model")
-            if crop then
-                -- Đang có cây trên ô đất
-                local multValue = crop:FindFirstChild("Multiplier") or crop:FindFirstChild("X")
-                local currentX = multValue and multValue.Value or 1
+        if not MyPlot or not MyPlot.Parent then
+            MyPlot = FindMyPlot()
+            if not MyPlot then
+                StatusLabel:UpdateLabel("Trạng thái: 🟡 Đang chờ bạn nhận Plot đất...")
+            end
+        else
+            -- Tìm cây đang trồng trong Plot của bạn
+            local myCrop = MyPlot:FindFirstChild("Crop") or MyPlot:FindFirstChildOfClass("Model")
+            
+            if myCrop then
+                -- Lấy hệ số X (Multiplier)
+                local multObj = myCrop:FindFirstChild("Multiplier") or myCrop:FindFirstChild("X") or myCrop:FindFirstChild("Value")
+                local currentX = multObj and multObj.Value or "1.0"
+                MultiplierLabel:UpdateLabel("Hệ số cây hiện tại: x" .. tostring(currentX))
                 
-                -- Bắt sự kiện Sét đánh nhắm VÀO CÂY CỦA BẠN (Kiểm tra Object Sét nằm trong Plot của bạn)
-                local lightningInMyPlot = false
-                for _, obj in pairs(myPlot:GetDescendants()) do
-                    local name = string.lower(obj.Name)
-                    if string.find(name, "lightning") or string.find(name, "strike") or string.find(name, "warning") then
-                        lightningInMyPlot = true
+                -- Kiểm tra SÉT chỉ xuất hiện TRONG PLOT CỦA BẠN
+                local lightningDetected = false
+                for _, obj in pairs(MyPlot:GetDescendants()) do
+                    local objName = string.lower(obj.Name)
+                    if string.find(objName, "lightning") or string.find(objName, "strike") or string.find(objName, "warning") or string.find(objName, "danger") then
+                        lightningDetected = true
                         break
                     end
                 end
 
-                if lightningInMyPlot then
-                    StatusLabel:Set("⚠️ SÉT ĐÁNH CÂY CỦA BẠN TẠI: x" .. tostring(currentX) .. "!")
+                if lightningDetected then
+                    StatusLabel:UpdateLabel("⚠️ CẢNH BÁO: SÉT ĐÁNH CÂY CỦA BẠN TẠI x" .. tostring(currentX) .. "!")
                     
-                    if AutoHarvest then
-                        HarvestMyCrop()
-                        StatusLabel:Set("⚡ ĐÃ TỰ ĐỘNG THU HOẠCH TẠI x" .. tostring(currentX) .. "!")
+                    if AutoHarvestEnabled then
+                        AutoPickCrop()
+                        StatusLabel:UpdateLabel("⚡ ĐÃ NHẶT CÂY THÀNH CÔNG TẠI x" .. tostring(currentX) .. "!")
                     end
-                    task.wait(2)
+                    task.wait(1.5)
                 else
-                    StatusLabel:Set("🟢 Cây đang lớn | Hệ số hiện tại: x" .. tostring(currentX))
+                    StatusLabel:UpdateLabel("🟢 Cây an toàn | Đang lớn...")
                 end
             else
-                StatusLabel:Set("🟢 Đã thu hoạch / Đang chờ trồng cây mới...")
+                StatusLabel:UpdateLabel("🟢 Đất trống | Hãy trồng cây mới...")
+                MultiplierLabel:UpdateLabel("Hệ số hiện tại: x1.0")
             end
         end
     end
 end)
-
-OrionLib:Init()
