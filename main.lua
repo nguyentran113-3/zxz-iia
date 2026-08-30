@@ -1,57 +1,119 @@
--- Greedy Growers Mobile Ultra Script - Powered by WindUI
+-- Greedy Growers Mobile Native UI (No Library Lag)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
--- Load Library WindUI (Tối ưu 100% cho Mobile, Kéo thả & Drag mượt)
-local WindUI = loadstring(game:HttpGet("https://tree-hub.verifier.workers.dev/scripts/windui.lua"))()
+-- Xóa UI cũ nếu có
+if game:GetService("CoreGui"):FindFirstChild("GreedyMobileUI") then
+    game:GetService("CoreGui").GreedyMobileUI:Destroy()
+end
 
-local Window = WindUI:CreateWindow({
-    Title = "Greedy Growers VIP",
-    Icon = "zap",
-    Author = "Mobile Script",
-    Folder = "GreedyGrowersConfig",
-    Size = UDim2.fromOffset(360, 240),
-    Transparent = true,
-    Theme = "Dark"
-})
+-- 1. TẠO GIAO DIỆN (NATIVE GUI)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GreedyMobileUI"
+ScreenGui.ResetOnSpawn = false
+pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- NÚT NỔI THU NHỎ / HIỆN MENU TRÊN MOBILE
-Window:OpenElement()
+-- Nút nổi thu nhỏ/hiện Menu
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextSize = 25
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Active = true
+ToggleBtn.Draggable = true
 
-local MainTab = Window:Tab({ Title = "Hệ Thống Sét", Icon = "shield-alert" })
+local ToggleCorner = Instance.new("UICorner", ToggleBtn)
+ToggleCorner.CornerRadius = UDim.new(1, 0)
 
--- BIẾN ĐIỀU KHIỂN
-local AutoHarvestEnabled = true
-local SoundAlertEnabled = true
+-- Khung Menu Chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 280, 0, 170)
+MainFrame.Position = UDim2.new(0.5, -140, 0.4, -85)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local FrameCorner = Instance.new("UICorner", MainFrame)
+FrameCorner.CornerRadius = UDim.new(0, 10)
+
+-- Tiêu đề
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+Title.Text = "⚡ GREEDY GROWERS VIP"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 16
+
+local TitleCorner = Instance.new("UICorner", Title)
+TitleCorner.CornerRadius = UDim.new(0, 10)
+
+-- Label Trạng thái & Hệ số X
+local StatusLabel = Instance.new("TextLabel", MainFrame)
+StatusLabel.Position = UDim2.new(0, 10, 0, 45)
+StatusLabel.Size = UDim2.new(1, -20, 0, 25)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Trạng thái: 🟢 Đang tìm Plot..."
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+StatusLabel.Font = Enum.Font.SourceSans
+StatusLabel.TextSize = 14
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local MultiplierLabel = Instance.new("TextLabel", MainFrame)
+MultiplierLabel.Position = UDim2.new(0, 10, 0, 70)
+MultiplierLabel.Size = UDim2.new(1, -20, 0, 25)
+MultiplierLabel.BackgroundTransparency = 1
+MultiplierLabel.Text = "Hệ số cây: x1.0"
+MultiplierLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+MultiplierLabel.Font = Enum.Font.SourceSans
+MultiplierLabel.TextSize = 14
+MultiplierLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Nút Bật/Tắt Auto Pick
+local AutoBtn = Instance.new("TextButton", MainFrame)
+AutoBtn.Position = UDim2.new(0, 10, 0, 110)
+AutoBtn.Size = UDim2.new(1, -20, 0, 40)
+AutoBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
+AutoBtn.Text = "AUTO NHẶT CÂY: BẬT"
+AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoBtn.Font = Enum.Font.SourceSansBold
+AutoBtn.TextSize = 15
+
+local BtnCorner = Instance.new("UICorner", AutoBtn)
+BtnCorner.CornerRadius = UDim.new(0, 6)
+
+-- Event Bật/Tắt Menu khi bấm nút ⚡
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+local AutoHarvest = true
+AutoBtn.MouseButton1Click:Connect(function()
+    AutoHarvest = not AutoHarvest
+    if AutoHarvest then
+        AutoBtn.Text = "AUTO NHẶT CÂY: BẬT"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 100)
+    else
+        AutoBtn.Text = "AUTO NHẶT CÂY: TẮT"
+        AutoBtn.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+    end
+end)
+
+-- 2. LOGIC TÌM PLOT ĐẤT CỦA BẠN
 local MyPlot = nil
-
-MainTab:Toggle({
-    Title = "Tự Động Nhặt Cây (Auto Pick)",
-    Desc = "Tự nhặt cây tức thì ngay khi sét đánh vào đất bạn",
-    Value = true,
-    Callback = function(state)
-        AutoHarvestEnabled = state
-    end
-})
-
-MainTab:Toggle({
-    Title = "Âm Thanh Cảnh Báo",
-    Desc = "Phát tiếng còi khi phát hiện sét",
-    Value = true,
-    Callback = function(state)
-        SoundAlertEnabled = state
-    end
-})
-
-local StatusParagraph = MainTab:Paragraph({
-    Title = "Trạng Thái: 🟢 Đang tìm Plot đất...",
-    Desc = "Hệ số cây hiện tại: x1.0"
-})
-
--- 1. TÌM CHÍNH XÁC PLOT ĐẤT CỦA BẠN
-local function FindMyPlot()
+local function GetMyPlot()
     local plotsFolder = workspace:FindFirstChild("Plots") or workspace:FindFirstChild("PlotsFolder") or workspace
     for _, plot in pairs(plotsFolder:GetChildren()) do
         local owner = plot:FindFirstChild("Owner") or plot:FindFirstChild("Player")
@@ -62,19 +124,18 @@ local function FindMyPlot()
     return nil
 end
 
--- 2. HÀM KÍCH HOẠT NHẶT CÂY TỨC THÌ (AUTO COLLECT)
+-- 3. HÀM TỰ ĐỘNG NHẶT CÂY
 local function AutoPickCrop()
-    -- Gửi tín hiệu RemoteEvent về Server
+    -- Bắn RemoteEvent
     for _, v in pairs(ReplicatedStorage:GetDescendants()) do
         if v:IsA("RemoteEvent") then
             local name = string.lower(v.Name)
-            if string.find(name, "harvest") or string.find(name, "pick") or string.find(name, "collect") or string.find(name, "claim") then
+            if string.find(name, "harvest") or string.find(name, "pick") or string.find(name, "collect") then
                 v:FireServer()
             end
         end
     end
-
-    -- Giả lập bấm nút Nhặt Cây trên màn hình Mobile
+    -- Click Nút Harvest trên màn hình
     local pGui = LocalPlayer:FindFirstChild("PlayerGui")
     if pGui then
         for _, btn in pairs(pGui:GetDescendants()) do
@@ -84,7 +145,7 @@ local function AutoPickCrop()
                     local pos = btn.AbsolutePosition
                     local size = btn.AbsoluteSize
                     VirtualInputManager:SendTouchEvent(0, pos.X + size.X/2, pos.Y + size.Y/2, 0, game, 0)
-                    task.wait(0.02)
+                    task.wait(0.01)
                     VirtualInputManager:SendTouchEvent(0, pos.X + size.X/2, pos.Y + size.Y/2, 1, game, 0)
                 end
             end
@@ -92,58 +153,48 @@ local function AutoPickCrop()
     end
 end
 
--- 3. VÒNG LẶP THEO DÕI SÉT & HỆ SỐ X (CHẠY NGẦM SIÊU TỐC)
+-- 4. VÒNG LẶP QUÉT SÉT & X MULTIPLIER (SIÊU TỐC)
 task.spawn(function()
     while task.wait(0.05) do
         if not MyPlot or not MyPlot.Parent then
-            MyPlot = FindMyPlot()
+            MyPlot = GetMyPlot()
             if not MyPlot then
-                StatusParagraph:SetTitle("Trạng Thái: 🟡 Chưa tìm thấy Plot!")
-                StatusParagraph:SetDesc("Vui lòng đứng vào ô đất của bạn.")
+                StatusLabel.Text = "Trạng thái: 🟡 Đang chờ nhận Plot..."
             end
         else
-            -- Tìm cây trong Plot của bạn
-            local myCrop = MyPlot:FindFirstChild("Crop") or MyPlot:FindFirstChildOfClass("Model")
-            
-            if myCrop then
-                -- Đọc chỉ số Multiplier (x)
-                local multObj = myCrop:FindFirstChild("Multiplier") or myCrop:FindFirstChild("X") or myCrop:FindFirstChild("Value")
+            local crop = MyPlot:FindFirstChild("Crop") or MyPlot:FindFirstChildOfClass("Model")
+            if crop then
+                local multObj = crop:FindFirstChild("Multiplier") or crop:FindFirstChild("X") or crop:FindFirstChild("Value")
                 local currentX = multObj and multObj.Value or "1.0"
-                
-                -- Bắt sự kiện Sét chỉ nằm trong Plot của BẠN
-                local lightningInPlot = false
+                MultiplierLabel.Text = "Hệ số cây: x" .. tostring(currentX)
+
+                -- Bắt sét duy nhất trên Plot của bạn
+                local isLightning = false
                 for _, obj in pairs(MyPlot:GetDescendants()) do
                     local name = string.lower(obj.Name)
-                    if string.find(name, "lightning") or string.find(name, "strike") or string.find(name, "warning") or string.find(name, "thunder") then
-                        lightningInPlot = true
+                    if string.find(name, "lightning") or string.find(name, "strike") or string.find(name, "warning") then
+                        isLightning = true
                         break
                     end
                 end
 
-                if lightningInPlot then
-                    StatusParagraph:SetTitle("⚠️ CẢNH BÁO: SÉT ĐÁNH CÂY CỦA BẠN!")
-                    StatusParagraph:SetDesc("Đã phát hiện sét tại hệ số: x" .. tostring(currentX))
+                if isLightning then
+                    StatusLabel.Text = "⚠️ SÉT ĐÁNH TẠI: x" .. tostring(currentX) .. "!"
+                    StatusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
                     
-                    if SoundAlertEnabled then
-                        local sound = Instance.new("Sound", game:GetService("SoundService"))
-                        sound.SoundId = "rbxassetid://9114223177"
-                        sound.Volume = 2
-                        sound:Play()
-                    end
-
-                    if AutoHarvestEnabled then
+                    if AutoHarvest then
                         AutoPickCrop()
-                        StatusParagraph:SetTitle("⚡ ĐÃ AUTO NHẶT CÂY THÀNH CÔNG!")
-                        StatusParagraph:SetDesc("Đã nhặt cây an toàn ở mức: x" .. tostring(currentX))
+                        StatusLabel.Text = "⚡ ĐÃ NHẶT CÂY THÀNH CÔNG!"
+                        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
                     end
                     task.wait(1.5)
                 else
-                    StatusParagraph:SetTitle("🟢 Cây an toàn | Đang lớn...")
-                    StatusParagraph:SetDesc("Hệ số cây hiện tại: x" .. tostring(currentX))
+                    StatusLabel.Text = "Trạng thái: 🟢 Cây an toàn"
+                    StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
                 end
             else
-                StatusParagraph:SetTitle("🟢 Đất trống")
-                StatusParagraph:SetDesc("Hãy trồng cây mới để bắt đầu theo dõi.")
+                StatusLabel.Text = "Trạng thái: 🟢 Đất trống"
+                MultiplierLabel.Text = "Hệ số cây: x1.0"
             end
         end
     end
