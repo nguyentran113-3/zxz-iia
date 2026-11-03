@@ -1,6 +1,26 @@
 -- ==============================================================================
--- URBAN RELOAD - STABLE ANTI-CRASH COMBAT HUB (NO CRASH)
+-- URBAN RELOAD - DEEP BYPASS & ULTIMATE HARD LOCK AIMBOT SCRIPT
 -- ==============================================================================
+
+-- 1. DEEP BYPASS ANTI-CHEAT (Chặn đứng quét CoreGui và Script Executor)
+pcall(function()
+    local old
+    old = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" or method == "kick" then
+            return nil
+        end
+        return old(self, ...)
+    end)
+end)
+
+pcall(function()
+    for _, v in ipairs(game:GetService("CoreGui"):GetChildren()) do
+        if v.Name:lower().endWith and v.Name:lower():find("detector") then
+            v:Destroy()
+        end
+    end
+end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,12 +29,12 @@ local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Xóa UI cũ nếu có
-if CoreGui:FindFirstChild("UrbanReloadStableHub") then
-    CoreGui.UrbanReloadStableHub:Destroy()
+-- Xóa UI cũ nếu có tránh trùng lặp
+if CoreGui:FindFirstChild("UrbanReloadSecureHub") then
+    CoreGui.UrbanReloadSecureHub:Destroy()
 end
 
--- Cấu hình Master Config (Đã loại bỏ các hook gây crash game)
+-- Cấu hình Master Config
 getgenv().UR_Config = {
     ESP = {
         Enabled = true,
@@ -22,10 +42,10 @@ getgenv().UR_Config = {
     },
     Aimbot = {
         Enabled = false,
-        Key = Enum.UserInputType.MouseButton2, -- Giữ chuột phải để dính cứng ngắt
+        Key = Enum.UserInputType.MouseButton2, -- Giữ chuột phải để khóa cứng ngắt
         Bone = "UpperTorso", -- Lựa chọn: Head, Neck, UpperTorso (Ưu tiên Cổ / Bụng)
-        Smoothness = 1, -- 1 là khóa cứng ngắt, tăng lên nếu muốn mượt
-        FOV = 180,
+        Smoothness = 1, -- 1 là khóa cứng ngắt 100%
+        FOV = 200,
     },
     Combat = {
         NoRecoil = true,
@@ -33,10 +53,10 @@ getgenv().UR_Config = {
 }
 
 -- ==============================================================================
--- 1. GIAO DIỆN UI & CỤC TRÒN FPS NỔI
+-- 2. GIAO DIỆN UI & CỤC TRÒN FPS NỔI
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadStableHub"
+ScreenGui.Name = "UrbanReloadSecureHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -57,7 +77,7 @@ UIStroke.Thickness = 1.5
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-Title.Text = "   URBAN RELOAD // STABLE COMBAT HUB"
+Title.Text = "   URBAN RELOAD // SECURE COMBAT HUB"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -180,13 +200,13 @@ local function AddDropdown(text, category, key, options)
 end
 
 AddToggle("ESP Định Vị Player (50m)", "ESP", "Enabled")
-AddToggle("Aimbot Khóa Cứng Ngắt / Bám Dính", "Aimbot", "Enabled")
-AddDropdown("Vùng Ngắm (Ưu tiên Cổ & Bụng)", "Aimbot", "Bone", {"UpperTorso", "Neck", "Head"})
+AddToggle("Aimbot Khóa Cứng Ngắt", "Aimbot", "Enabled")
+AddDropdown("Vùng Ngắm (Cổ & Bụng)", "Aimbot", "Bone", {"UpperTorso", "Neck", "Head"})
 AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
 
 
 -- ==============================================================================
--- 2. AIMBOT HARD LOCK LOGIC (AN TOÀN, KHÔNG CRASH, DÍNH CHẶT)
+-- 3. AIMBOT HARD LOCK LOGIC
 -- ==============================================================================
 local function GetAimbotTarget()
     local target, shortestDist = nil, getgenv().UR_Config.Aimbot.FOV
@@ -219,7 +239,7 @@ RunService.RenderStepped:Connect(function()
             local currentCF = Camera.CFrame
             local targetCF = CFrame.new(currentCF.Position, targetBone.Position)
             if getgenv().UR_Config.Aimbot.Smoothness <= 1 then
-                Camera.CFrame = targetCF -- Khóa cứng ngắt vào mục tiêu
+                Camera.CFrame = targetCF
             else
                 Camera.CFrame = currentCF:Lerp(targetCF, 1 / getgenv().UR_Config.Aimbot.Smoothness)
             end
@@ -229,10 +249,10 @@ end)
 
 
 -- ==============================================================================
--- 3. ESP 50M
+-- 4. ESP 50M
 -- ==============================================================================
 local espFolder = Instance.new("Folder", CoreGui)
-espFolder.Name = "UR_Stable_ESP"
+espFolder.Name = "UR_Secure_ESP"
 
 RunService.RenderStepped:Connect(function()
     espFolder:ClearAllChildren()
@@ -272,12 +292,12 @@ end)
 
 
 -- ==============================================================================
--- 4. NO RECOIL (CHỐNG RUNG TÂM SÚNG)
+-- 5. NO RECOIL
 -- ==============================================================================
 RunService.Stepped:Connect(function()
     if getgenv().UR_Config.Combat.NoRecoil then
         pcall(function()
-            local char = LocalPlayer.Person or LocalPlayer.Character
+            local char = LocalPlayer.Character
             if char then
                 local tool = char:FindFirstChildOfClass("Tool")
                 if tool then
@@ -292,4 +312,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload Stable Hub Loaded Without Crash!")
+print("Urban Reload Secure Hub Loaded Successfully!")
