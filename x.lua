@@ -1,6 +1,17 @@
 -- ==============================================================================
--- URBAN RELOAD - MOBILE OPTIMIZED COMBAT HUB (FIXED & FULL FEATURES)
+-- URBAN RELOAD - PERFECT FOV CIRCLE SILENT AIM & COMBAT HUB
 -- ==============================================================================
+
+-- 1. BYPASS CHỐNG KICK AN TOÀN
+pcall(function()
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local oldIndex = mt.__index
+    mt.__index = newcclosure(function(self, k)
+        if k == "WalkSpeed" or k == "JumpPower" then return 16 end
+        return oldIndex(self, k)
+    end)
+end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,26 +19,22 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
--- Xóa UI cũ nếu có tránh trùng lặp
-if CoreGui:FindFirstChild("UrbanReloadMobileHub") then
-    CoreGui.UrbanReloadMobileHub:Destroy()
+-- Xóa UI cũ nếu có
+if CoreGui:FindFirstChild("UrbanReloadFOVSilentHub") then
+    CoreGui.UrbanReloadFOVSilentHub:Destroy()
 end
 
--- Master Config (Tối ưu cho Mobile: Không cần nút chuột phải)
-getgenv().UR_MobileConfig = {
+-- Master Config
+getgenv().UR_FOVConfig = {
     SilentAim = {
         Enabled = false,
         TeamCheck = true,
-        CheckWall = true, -- Không bắn xuyên tường
+        CheckWall = true, -- Không bắn xuyên tường (Wall Check)
         HitPart = "UpperTorso", -- Ưu tiên Cổ hoặc Bụng
-        FOV = 150,
+        FOVRadius = 150, -- Bán kính vòng tròn FOV (có thể tùy chỉnh to nhỏ)
         ShowFOV = true,
-    },
-    Aimbot = {
-        Enabled = false,
-        Bone = "UpperTorso", -- Khóa vào Cổ hoặc Bụng
-        FOV = 180,
     },
     ESP = {
         Enabled = true,
@@ -39,21 +46,21 @@ getgenv().UR_MobileConfig = {
 }
 
 -- ==============================================================================
--- 1. VÒNG TRÒN FOV TRỰC QUAN CHO MOBILE
+-- 2. VÒNG TRÒN FOV CỐ ĐỊNH CHÍNH GIỮA TÂM (GIỐNG HỆT TRONG ẢNH)
 -- ==============================================================================
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = false
-FOVCircle.Radius = getgenv().UR_MobileConfig.SilentAim.FOV
-FOVCircle.Color = Color3.fromRGB(0, 255, 128)
-FOVCircle.Thickness = 1.5
+FOVCircle.Radius = getgenv().UR_FOVConfig.SilentAim.FOVRadius
+FOVCircle.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam y hệt trong ảnh mẫu
+FOVCircle.Thickness = 2
 FOVCircle.Filled = false
-FOVCircle.Transparency = 0.8
+FOVCircle.Transparency = 0.9
 
 RunService.RenderStepped:Connect(function()
-    if getgenv().UR_MobileConfig.SilentAim.Enabled and getgenv().UR_MobileConfig.SilentAim.ShowFOV then
+    if getgenv().UR_FOVConfig.SilentAim.Enabled and getgenv().UR_FOVConfig.SilentAim.ShowFOV then
         FOVCircle.Visible = true
-        FOVCircle.Radius = getgenv().UR_MobileConfig.SilentAim.FOV
-        -- Đặt vòng tròn FOV ở chính giữa màn hình điện thoại
+        FOVCircle.Radius = getgenv().UR_FOVConfig.SilentAim.FOVRadius
+        -- Cố định tâm vòng tròn chính giữa màn hình (Viewport Size)
         FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     else
         FOVCircle.Visible = false
@@ -61,17 +68,17 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==============================================================================
--- 2. GIAO DIỆN MENU & CỤC TRÒN FPS NỔI
+-- 3. GIAO DIỆN UI & CỤC TRÒN NỔI FPS
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadMobileHub"
+ScreenGui.Name = "UrbanReloadFOVSilentHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 480, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -180)
-MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
+MainFrame.Size = UDim2.new(0, 480, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -79,14 +86,13 @@ MainFrame.Parent = ScreenGui
 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local UIStroke = Instance.new("UIStroke", MainFrame)
-UIStroke.Color = Color3.fromRGB(0, 255, 128)
+UIStroke.Color = Color3.fromRGB(255, 170, 0)
 UIStroke.Thickness = 1.5
 
--- Title Bar
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-TitleBar.Text = "   URBAN RELOAD // MOBILE PRO HUB"
+TitleBar.Text = "   URBAN RELOAD // FOV SILENT AIM HUB"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 13
@@ -94,7 +100,6 @@ TitleBar.TextXAlignment = Enum.TextXAlignment.Left
 TitleBar.Parent = MainFrame
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
 
--- Nút Thu Nhỏ (-)
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -110,8 +115,8 @@ Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 local FPSWidget = Instance.new("TextButton")
 FPSWidget.Size = UDim2.new(0, 65, 0, 65)
 FPSWidget.Position = UDim2.new(0.05, 0, 0.15, 0)
-FPSWidget.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
-FPSWidget.TextColor3 = Color3.fromRGB(0, 255, 128)
+FPSWidget.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+FPSWidget.TextColor3 = Color3.fromRGB(255, 170, 0)
 FPSWidget.Font = Enum.Font.GothamBold
 FPSWidget.TextSize = 12
 FPSWidget.Text = "60\nFPS"
@@ -122,7 +127,7 @@ FPSWidget.Parent = ScreenGui
 Instance.new("UICorner", FPSWidget).CornerRadius = UDim.new(1, 0)
 
 local WidgetStroke = Instance.new("UIStroke", FPSWidget)
-WidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+WidgetStroke.Color = Color3.fromRGB(255, 170, 0)
 WidgetStroke.Thickness = 2
 
 local lastTick = tick()
@@ -136,7 +141,6 @@ end)
 MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; FPSWidget.Visible = true end)
 FPSWidget.MouseButton1Click:Connect(function() MainFrame.Visible = true; FPSWidget.Visible = false end)
 
--- Scroll Container
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -20, 1, -50)
 Scroll.Position = UDim2.new(0, 10, 0, 45)
@@ -153,7 +157,7 @@ local function AddHeader(text)
     lbl.Size = UDim2.new(1, 0, 0, 25)
     lbl.BackgroundTransparency = 1
     lbl.Text = "  " .. text
-    lbl.TextColor3 = Color3.fromRGB(0, 255, 128)
+    lbl.TextColor3 = Color3.fromRGB(255, 170, 0)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 12
     lbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -171,14 +175,14 @@ local function AddToggle(text, category, key)
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
 
     local function refresh()
-        local state = getgenv().UR_MobileConfig[category][key]
+        local state = getgenv().UR_FOVConfig[category][key]
         Btn.Text = "   " .. text .. ": " .. (state and "[ ON ]" or "[ OFF ]")
-        Btn.TextColor3 = state and Color3.fromRGB(0, 255, 128) or Color3.fromRGB(170, 170, 170)
+        Btn.TextColor3 = state and Color3.fromRGB(255, 170, 0) or Color3.fromRGB(170, 170, 170)
     end
     refresh()
 
     Btn.MouseButton1Click:Connect(function()
-        getgenv().UR_MobileConfig[category][key] = not getgenv().UR_MobileConfig[category][key]
+        getgenv().UR_FOVConfig[category][key] = not getgenv().UR_FOVConfig[category][key]
         refresh()
     end)
 end
@@ -194,7 +198,7 @@ local function AddDropdown(text, category, key, options)
     Lbl.Size = UDim2.new(1, -10, 0, 24)
     Lbl.Position = UDim2.new(0, 10, 0, 2)
     Lbl.BackgroundTransparency = 1
-    Lbl.Text = text .. ": " .. tostring(getgenv().UR_MobileConfig[category][key])
+    Lbl.Text = text .. ": " + tostring(getgenv().UR_FOVConfig[category][key])
     Lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
     Lbl.Font = Enum.Font.GothamMedium
     Lbl.TextSize = 12
@@ -216,33 +220,28 @@ local function AddDropdown(text, category, key, options)
     Switch.MouseButton1Click:Connect(function()
         idx = idx + 1
         if idx > #options then idx = 1 end
-        getgenv().UR_MobileConfig[category][key] = options[idx]
+        getgenv().UR_FOVConfig[category][key] = options[idx]
         Lbl.Text = text .. ": " .. tostring(options[idx])
     end)
 end
 
--- Xây dựng Menu
-AddHeader("=== SILENT AIM (TỰ BẮN TRÚNG) ===")
-AddToggle("Bật Silent Aim", "SilentAim", "Enabled")
+AddHeader("=== SILENT AIM (VÒNG TRÒN FOV) ===")
+AddToggle("Bật Silent Aim (Trong Vòng FOV)", "SilentAim", "Enabled")
 AddToggle("Team Check (Không bắn đồng đội)", "SilentAim", "TeamCheck")
 AddToggle("Check Tường (Không bắn xuyên vật thể)", "SilentAim", "CheckWall")
 AddToggle("Hiển thị vòng FOV", "SilentAim", "ShowFOV")
 AddDropdown("Vùng Ngắm Silent Aim", "SilentAim", "HitPart", {"UpperTorso", "Neck", "Head"})
 
-AddHeader("=== AIMBOT (KHÓA TÂM TỰ ĐỘNG) ===")
-AddToggle("Bật Aimbot Khóa Cứng Ngắt", "Aimbot", "Enabled")
-AddDropdown("Vùng Ngắm Aimbot", "Aimbot", "Bone", {"UpperTorso", "Neck", "Head"})
-
-AddHeader("=== ESP & COMBAT ===")
+AddHeader("=== ESP & TỐI ƯU ===")
 AddToggle("ESP Định Vị Player (50m)", "ESP", "Enabled")
 AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
 
 
 -- ==============================================================================
--- 3. WALL CHECK (KIỂM TRA TƯỜNG)
+-- 4. WALL CHECK (KHÔNG XUYÊN TƯỜNG)
 -- ==============================================================================
 local function IsVisible(targetPart)
-    if not getgenv().UR_MobileConfig.SilentAim.CheckWall then return true end
+    if not getgenv().UR_FOVConfig.SilentAim.CheckWall then return true end
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
     
@@ -260,23 +259,24 @@ end
 
 
 -- ==============================================================================
--- 4. LOGIC SILENT AIM (TỰ ĐỘNG NẮN HƯỚNG ĐẠN VÀO CỔ/BỤNG)
+-- 5. LOGIC SILENT AIM BẮN TRONG VÒNG TRÒN FOV
 -- ==============================================================================
-local function GetSilentTarget()
-    local target, shortestDist = nil, getgenv().UR_MobileConfig.SilentAim.FOV
+local function GetFOVSilentTarget()
+    local target, shortestDist = nil, getgenv().UR_FOVConfig.SilentAim.FOVRadius
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            if not (getgenv().UR_MobileConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
+            if not (getgenv().UR_FOVConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
                 local char = player.Character
                 if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                    local part = char:FindFirstChild(getgenv().UR_MobileConfig.SilentAim.HitPart)
+                    local part = char:FindFirstChild(getgenv().UR_FOVConfig.SilentAim.HitPart)
                     if part and IsVisible(part) then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
-                            local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                            -- Chỉ bắt mục tiêu nằm BÊN TRONG bán kính vòng tròn FOV giữa màn hình
                             local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-                            if dist < shortestDist then
+                            if dist <= getgenv().UR_FOVConfig.SilentAim.FOVRadius and dist < shortestDist then
                                 shortestDist = dist
                                 target = part
                             end
@@ -289,71 +289,36 @@ local function GetSilentTarget()
     return target
 end
 
+-- Hook Mouse Hit/Target để bẻ đường đạn khi bắn trong vòng FOV
 pcall(function()
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-        
-        if getgenv().UR_MobileConfig.SilentAim.Enabled and method == "Raycast" then
-            local targetPart = GetSilentTarget()
+    local mouseMt = getrawmetatable(Mouse)
+    setreadonly(mouseMt, false)
+    local oldMouseIndex = mouseMt.__index
+    mouseMt.__index = newcclosure(function(self, key)
+        if getgenv().UR_FOVConfig.SilentAim.Enabled then
+            local targetPart = GetFOVSilentTarget()
             if targetPart then
-                args[2] = (targetPart.Position - args[1]).Unit * 1000
-                return oldNamecall(self, unpack(args))
+                if key == "Hit" then
+                    return targetPart.CFrame
+                elseif key == "Target" then
+                    return targetPart
+                end
             end
         end
-        return oldNamecall(self, ...)
+        return oldMouseIndex(self, key)
     end)
 end)
 
 
 -- ==============================================================================
--- 5. AIMBOT KHÓA CỨNG NGẮT CHO MOBILE (BẬT LÀ KHÓA THẲNG VÀO CỔ/BỤNG)
--- ==============================================================================
-local function GetAimbotTarget()
-    local target, shortestDist = nil, getgenv().UR_MobileConfig.Aimbot.FOV
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then
-                local bone = player.Character:FindFirstChild(getgenv().UR_MobileConfig.Aimbot.Bone)
-                if bone then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(bone.Position)
-                    if onScreen then
-                        local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-                        if dist < shortestDist then
-                            shortestDist = dist
-                            target = bone
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return target
-end
-
-RunService.RenderStepped:Connect(function()
-    if getgenv().UR_MobileConfig.Aimbot.Enabled then
-        local targetBone = GetAimbotTarget()
-        if targetBone then
-            -- Khóa thẳng camera vào mục tiêu trên mobile ngay khi bật toggle
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetBone.Position)
-        end
-    end
-end)
-
-
--- ==============================================================================
--- 6. ESP 50M CHUẨN XÁC
+-- 6. ESP 50M
 -- ==============================================================================
 local espFolder = Instance.new("Folder", CoreGui)
-espFolder.Name = "UR_Mobile_ESP"
+espFolder.Name = "UR_FOV_ESP"
 
 RunService.RenderStepped:Connect(function()
     espFolder:ClearAllChildren()
-    if not getgenv().UR_MobileConfig.ESP.Enabled then return end
+    if not getgenv().UR_FOVConfig.ESP.Enabled then return end
     
     local localChar = LocalPlayer.Character
     if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
@@ -366,7 +331,7 @@ RunService.RenderStepped:Connect(function()
             
             if hrp and hum and hum.Health > 0 then
                 local dist = (hrp.Position - localHrp.Position).Magnitude
-                if dist <= getgenv().UR_MobileConfig.ESP.MaxDistance then
+                if dist <= getgenv().UR_FOVConfig.ESP.MaxDistance then
                     local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                     if onScreen then
                         local bill = Instance.new("BillboardGui", espFolder)
@@ -377,7 +342,7 @@ RunService.RenderStepped:Connect(function()
                         local txt = Instance.new("TextLabel", bill)
                         txt.Size = UDim2.new(1, 0, 1, 0)
                         txt.BackgroundTransparency = 1
-                        txt.TextColor3 = Color3.fromRGB(255, 60, 60)
+                        txt.TextColor3 = Color3.fromRGB(255, 170, 0)
                         txt.Font = Enum.Font.GothamBold
                         txt.TextSize = 11
                         txt.TextStrokeTransparency = 0
@@ -391,10 +356,10 @@ end)
 
 
 -- ==============================================================================
--- 7. NO RECOIL (CHỐNG RUNG TÂM)
+-- 7. NO RECOIL
 -- ==============================================================================
 RunService.Stepped:Connect(function()
-    if getgenv().UR_MobileConfig.Combat.NoRecoil then
+    if getgenv().UR_FOVConfig.Combat.NoRecoil then
         pcall(function()
             local char = LocalPlayer.Character
             if char then
@@ -411,4 +376,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload Mobile Pro Hub Loaded!")
+print("Urban Reload FOV Silent Hub Loaded Successfully!")
