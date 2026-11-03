@@ -1,5 +1,5 @@
 -- ==============================================================================
--- URBAN RELOAD - ADVANCED WESTERN MODULE SILENT AIM (GETGC HOOK)
+-- URBAN RELOAD - ULTIMATE SILENT AIM (DIRECT VECTOR OVERWRITE & WORKING ESP)
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -7,24 +7,26 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
 local ProtectedGui = gethui and gethui() or CoreGui
 
-if ProtectedGui:FindFirstChild("UrbanReloadProHub") then
-    ProtectedGui.UrbanReloadProHub:Destroy()
+if ProtectedGui:FindFirstChild("UrbanReloadFinalHub") then
+    ProtectedGui.UrbanReloadFinalHub:Destroy()
 end
 
-getgenv().UR_ProConfig = {
+-- Config Master
+getgenv().UR_FinalConfig = {
     SilentAim = {
         Enabled = true,
         TeamCheck = true,
-        HitPart = "UpperTorso",
-        FOVRadius = 160,
+        HitPart = "UpperTorso", -- Vùng nhận sát thương (Ngực/Thân trên)
+        FOVRadius = 160,        -- Bán kính vòng vàng cam
         ShowFOV = true,
     },
     ESP = {
         Enabled = true,
-        MaxDistance = 150,
+        MaxDistance = 150,      -- 150 studs (~50m)
     },
     Combat = {
         NoRecoil = true,
@@ -35,7 +37,7 @@ getgenv().UR_ProConfig = {
 -- 1. VÒNG TRÒN FOV VÀNG CAM
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadProHub"
+ScreenGui.Name = "UrbanReloadFinalHub"
 ScreenGui.Parent = ProtectedGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -58,8 +60,8 @@ FOVCorner.Parent = FOVFrame
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if getgenv().UR_ProConfig.SilentAim.Enabled and getgenv().UR_ProConfig.SilentAim.ShowFOV then
-            local radius = getgenv().UR_ProConfig.SilentAim.FOVRadius
+        if getgenv().UR_FinalConfig.SilentAim.Enabled and getgenv().UR_FinalConfig.SilentAim.ShowFOV then
+            local radius = getgenv().UR_FinalConfig.SilentAim.FOVRadius
             FOVFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
             FOVFrame.Visible = true
         else
@@ -69,23 +71,23 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==============================================================================
--- 2. TÌM MỤC TIÊU TRONG FOV
+-- 2. HỆ THỐNG TÌM MỤC TIÊU TRONG VÒNG FOV
 -- ==============================================================================
-local function GetBestTarget()
-    local target, shortestDist = nil, getgenv().UR_ProConfig.SilentAim.FOVRadius
+local function GetSilentTarget()
+    local target, shortestDist = nil, getgenv().UR_FinalConfig.SilentAim.FOVRadius
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            if not (getgenv().UR_ProConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
+            if not (getgenv().UR_FinalConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
                 local char = player.Character
                 if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                    local part = char:FindFirstChild(getgenv().UR_ProConfig.SilentAim.HitPart) or char:FindFirstChild("Head")
+                    local part = char:FindFirstChild(getgenv().UR_FinalConfig.SilentAim.HitPart) or char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
                     if part then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
                             local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-                            if dist <= getgenv().UR_ProConfig.SilentAim.FOVRadius and dist < shortestDist then
+                            if dist <= getgenv().UR_FinalConfig.SilentAim.FOVRadius and dist < shortestDist then
                                 shortestDist = dist
                                 target = part
                             end
@@ -99,44 +101,60 @@ local function GetBestTarget()
 end
 
 -- ==============================================================================
--- 3. HOOK MODULE SÚNG BẰNG GETGC (CÁCH TỤI TÂY LÁCH SERVER)
+-- 3. TRUE SILENT AIM - BẺ HƯỚNG MOUSE.HIT VÀ HOOK RAYCAST TRỰC TIẾP
 -- ==============================================================================
 pcall(function()
-    if getgc and getupvalues and setupvalue then
-        for _, v in pairs(getgc(true)) do
-            if typeof(v) == "function" then
-                local name = debug.getinfo(v).name
-                if name == "fire" or name == "shoot" or name == "Cast" or name == "CreateBullet" then
-                    local ups = getupvalues(v)
-                    for idx, up in pairs(ups) do
-                        if typeof(up) == "table" then
-                            -- Thay đổi các biến hướng dẫn đường đạn ngầm trong table của súng
-                            RunService.RenderStepped:Connect(function()
-                                if getgenv().UR_ProConfig.SilentAim.Enabled then
-                                    local target = GetBestTarget()
-                                    if target and rawget(up, "Camera") or rawget(up, "MousePos") then
-                                        pcall(function()
-                                            up.MousePos = target.Position
-                                        end)
-                                    end
-                                end
-                            end)
-                        end
+    local oldIndex
+    oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if getgenv().UR_FinalConfig.SilentAim.Enabled and not checkcaller() then
+            if self == Mouse and (key == "Hit" or key == "Target") then
+                local targetPart = GetSilentTarget()
+                if targetPart then
+                    if key == "Hit" then
+                        return targetPart.CFrame
+                    elseif key == "Target" then
+                        return targetPart
                     end
                 end
             end
         end
-    end
+        return oldIndex(self, key)
+    end))
+end)
+
+pcall(function()
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+
+        if getgenv().UR_FinalConfig.SilentAim.Enabled and not checkcaller() then
+            if method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" then
+                local targetPart = GetSilentTarget()
+                if targetPart then
+                    if method == "Raycast" then
+                        local origin = args[1]
+                        args[2] = (targetPart.Position - origin).Unit * 1000
+                    elseif method:find("FindPartOnRay") then
+                        local origin = args[1].Origin
+                        args[1] = Ray.new(origin, (targetPart.Position - origin).Unit * 1000)
+                    end
+                    return oldNamecall(self, unpack(args))
+                end
+            end
+        end
+        return oldNamecall(self, ...)
+    end))
 end)
 
 -- ==============================================================================
--- 4. ESP 50M ỔN ĐỊNH KHÔNG CHỚP NHÁY
+-- 4. ESP KHÔNG LỖI (GIỮ NGUYÊN BẢN ĐANG HIỆN TỐT CỦA ÔNG)
 -- ==============================================================================
 local activeESPs = {}
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if not getgenv().UR_ProConfig.ESP.Enabled then
+        if not getgenv().UR_FinalConfig.ESP.Enabled then
             for _, gui in pairs(activeESPs) do if gui then gui:Destroy() end end
             activeESPs = {}
             return
@@ -155,7 +173,7 @@ RunService.RenderStepped:Connect(function()
                 
                 if hrp and hum and hum.Health > 0 then
                     local dist = (hrp.Position - localHrp.Position).Magnitude
-                    if dist <= getgenv().UR_ProConfig.ESP.MaxDistance then
+                    if dist <= getgenv().UR_FinalConfig.ESP.MaxDistance then
                         currentPlayers[player] = true
                         
                         local bill = activeESPs[player]
@@ -201,7 +219,7 @@ end)
 -- 5. NO RECOIL
 -- ==============================================================================
 RunService.Stepped:Connect(function()
-    if getgenv().UR_ProConfig.Combat.NoRecoil then
+    if getgenv().UR_FinalConfig.Combat.NoRecoil then
         pcall(function()
             local char = LocalPlayer.Character
             if char then
@@ -218,4 +236,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload Pro Western Script Loaded!")
+print("Urban Reload True Silent Aim Final Fix Loaded!")
