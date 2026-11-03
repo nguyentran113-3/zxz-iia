@@ -1,5 +1,5 @@
 -- ==============================================================================
--- URBAN RELOAD - 100% STABLE NO-CRASH FOV AIM & ESP
+-- URBAN RELOAD - TRUE BULLET REDIRECT SILENT AIM (MOBILE SAFE)
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -20,14 +20,13 @@ getgenv().UR_SilentConfig = {
     SilentAim = {
         Enabled = true,
         TeamCheck = true,
-        CheckWall = true,
-        HitPart = "UpperTorso",
-        FOVRadius = 160, -- Bán kính FOV
+        HitPart = "UpperTorso", -- Bắn vào ngực / người
+        FOVRadius = 160,        -- Bán kính vòng tròn FOV vàng cam
         ShowFOV = true,
     },
     ESP = {
         Enabled = true,
-        MaxDistance = 150, -- 150 studs (~50m)
+        MaxDistance = 150,
     },
     Combat = {
         NoRecoil = true,
@@ -35,14 +34,13 @@ getgenv().UR_SilentConfig = {
 }
 
 -- ==============================================================================
--- 1. SCREEN GUI CHÍNH & VÒNG TRÒN FOV AN TOÀN (DÙNG UI FRAME THAY DRAWING)
+-- 1. VÒNG TRÒN FOV VÀNG CAM
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UrbanReloadTrueSilentHub"
 ScreenGui.Parent = ProtectedGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Vòng tròn FOV vàng cam bằng Roblox UI (Không bị crash)
 local FOVFrame = Instance.new("Frame")
 FOVFrame.Name = "SafeFOVCircle"
 FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -51,13 +49,13 @@ FOVFrame.BackgroundTransparency = 1
 FOVFrame.Parent = ScreenGui
 
 local FOVStroke = Instance.new("UIStroke")
-FOVStroke.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam giống hệt ảnh mẫu[span_1](start_span)[span_1](end_span)
+FOVStroke.Color = Color3.fromRGB(255, 170, 0)
 FOVStroke.Thickness = 2
 FOVStroke.Transparency = 0.2
 FOVStroke.Parent = FOVFrame
 
 local FOVCorner = Instance.new("UICorner")
-FOVCorner.CornerRadius = UDim.new(1, 0) -- Biến Frame vuông thành hình tròn
+FOVCorner.CornerRadius = UDim.new(1, 0)
 FOVCorner.Parent = FOVFrame
 
 RunService.RenderStepped:Connect(function()
@@ -73,7 +71,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==============================================================================
--- 2. GIAO DIỆN UI MENU HUB & CỤC TRÒN FPS
+-- 2. GIAO DIỆN MENU HUB & CỤC TRÒN FPS
 -- ==============================================================================
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 480, 0, 360)
@@ -92,7 +90,7 @@ UIStroke.Thickness = 1.5
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-TitleBar.Text = "   URBAN RELOAD // SAFE FOV AIM HUB"
+TitleBar.Text = "   URBAN RELOAD // TRUE SILENT AIM"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 13
@@ -111,7 +109,6 @@ MinBtn.TextSize = 16
 MinBtn.Parent = TitleBar
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
--- Cục tròn FPS nổi
 local FPSWidget = Instance.new("TextButton")
 FPSWidget.Size = UDim2.new(0, 65, 0, 65)
 FPSWidget.Position = UDim2.new(0.05, 0, 0.15, 0)
@@ -129,14 +126,6 @@ Instance.new("UICorner", FPSWidget).CornerRadius = UDim.new(1, 0)
 local WidgetStroke = Instance.new("UIStroke", FPSWidget)
 WidgetStroke.Color = Color3.fromRGB(255, 170, 0)
 WidgetStroke.Thickness = 2
-
-local lastTick = tick()
-RunService.RenderStepped:Connect(function(dt)
-    if FPSWidget.Visible and tick() - lastTick >= 0.3 then
-        FPSWidget.Text = math.floor(1 / dt) .. "\nFPS"
-        lastTick = tick()
-    end
-end)
 
 MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; FPSWidget.Visible = true end)
 FPSWidget.MouseButton1Click:Connect(function() MainFrame.Visible = true; FPSWidget.Visible = false end)
@@ -176,7 +165,7 @@ local function AddToggle(text, category, key)
 
     local function refresh()
         local state = getgenv().UR_SilentConfig[category][key]
-        Btn.Text = "   " .. text .. ": " .. (state and "[ ON ]" or "[ OFF ]")
+        Btn.Text = "   " .. text .. ": " .. (state and "[ ON ]" : "[ OFF ]")
         Btn.TextColor3 = state and Color3.fromRGB(255, 170, 0) or Color3.fromRGB(170, 170, 170)
     end
     refresh()
@@ -187,10 +176,9 @@ local function AddToggle(text, category, key)
     end)
 end
 
-AddHeader("=== CÀI ĐẶT FOV & AIM ===")
-AddToggle("Bật Hỗ Trợ Aim FOV", "SilentAim", "Enabled")
-AddToggle("Team Check (Không khóa đồng đội)", "SilentAim", "TeamCheck")
-AddToggle("Check Tường (Vật thể chắn)", "SilentAim", "CheckWall")
+AddHeader("=== TRUE SILENT AIM (BẺ HƯỚNG ĐẠN) ===")
+AddToggle("Bật Silent Aim (Đạn tự tìm địch)", "SilentAim", "Enabled")
+AddToggle("Team Check (Không bắn đồng đội)", "SilentAim", "TeamCheck")
 AddToggle("Hiển thị vòng FOV Vàng Cam", "SilentAim", "ShowFOV")
 
 AddHeader("=== ESP & TỐI ƯU ===")
@@ -198,29 +186,9 @@ AddToggle("ESP Định Vị Player (50m)", "ESP", "Enabled")
 AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
 
 -- ==============================================================================
--- 3. CHECK VẬT THỂ CHẮN (WALL CHECK AN TOÀN)
+-- 3. HỆ THỐNG TÌM MỤC TIÊU TRONG VÒNG FOV
 -- ==============================================================================
-local function IsVisible(targetPart)
-    if not getgenv().UR_SilentConfig.SilentAim.CheckWall then return true end
-    local origin = Camera.CFrame.Position
-    local direction = targetPart.Position - origin
-    
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    params.IgnoreWater = true
-    
-    local result = workspace:Raycast(origin, direction, params)
-    if result then
-        return result.Instance:IsDescendantOf(targetPart.Parent)
-    end
-    return true
-end
-
--- ==============================================================================
--- 4. TIM MỤC TIÊU TRONG VÒNG FOV & BÁM KHÓA AN TOÀN
--- ==============================================================================
-local function GetFOVSilentTarget()
+local function GetSilentTarget()
     local target, shortestDist = nil, getgenv().UR_SilentConfig.SilentAim.FOVRadius
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
@@ -230,7 +198,7 @@ local function GetFOVSilentTarget()
                 local char = player.Character
                 if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
                     local part = char:FindFirstChild(getgenv().UR_SilentConfig.SilentAim.HitPart) or char:FindFirstChild("Head")
-                    if part and IsVisible(part) then
+                    if part then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
                             local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
@@ -247,19 +215,25 @@ local function GetFOVSilentTarget()
     return target
 end
 
-RunService.RenderStepped:Connect(function()
-    pcall(function()
+-- ==============================================================================
+-- 4. HOOK RAYCAST ĐỂ ĐẠN TỰ ĐỘNG BẺ HƯỚNG TRÚNG ĐỊCH
+-- ==============================================================================
+pcall(function()
+    local oldRaycast
+    oldRaycast = hookfunction(workspace.Raycast, function(self, origin, direction, params)
         if getgenv().UR_SilentConfig.SilentAim.Enabled then
-            local targetPart = GetFOVSilentTarget()
-            if targetPart and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+            local targetPart = GetSilentTarget()
+            if targetPart then
+                -- Bẻ hướng tia đạn từ súng thẳng đến mục tiêu trong vòng FOV
+                direction = (targetPart.Position - origin)
             end
         end
+        return oldRaycast(self, origin, direction, params)
     end)
 end)
 
 -- ==============================================================================
--- 5. ESP 50M AN TOÀN (KHÔNG LỖI MEMORY LEAK)
+-- 5. ESP 50M AN TOÀN
 -- ==============================================================================
 local espFolder = Instance.new("Folder", ProtectedGui)
 espFolder.Name = "UR_Safe_ESP"
@@ -325,4 +299,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload Hub Loaded Successfully!")
+print("True Silent Raycast Redirect Loaded Successfully!")
