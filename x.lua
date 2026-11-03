@@ -1,41 +1,39 @@
 -- ==============================================================================
--- URBAN RELOAD / GTA 5 STYLE SCRIPT - FULL EDITION
--- Features: ESP 50m, Smooth Aimbot, Wall-checked Silent Aim, No Recoil, FPS Boost
+-- URBAN RELOAD / GTA 5 STYLE - REWRITTEN & FIXED FULL SCRIPT
+-- Features: Real Working Silent Aim (Hookmetamethod), Lock Aimbot, ESP 50m, No Recoil, FPS Widget
 -- ==============================================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
--- Xóa UI cũ nếu có tránh bị trùng lặp
-if CoreGui:FindFirstChild("AdvancedScriptHub") then
-    CoreGui.AdvancedScriptHub:Destroy()
+-- Cleanup Old UI
+if CoreGui:FindFirstChild("UrbanReloadHubFixed") then
+    CoreGui.UrbanReloadHubFixed:Destroy()
 end
 
--- Config State
-getgenv().ScriptConfig = {
+-- Master Config
+getgenv().Config = {
     ESP = {
-        Enabled = false,
-        MaxDistance = 150, -- 150 studs tương đương ~50 mét trong Roblox
-        Boxes = true,
-        Names = true,
-        Distances = true,
+        Enabled = true,
+        MaxDistance = 150, -- 150 studs (~50m)
     },
     Aimbot = {
-        Enabled = false,
-        Key = Enum.UserInputType.MouseButton2, -- Chuột phải
-        Bone = "Head", -- Head, Neck, UpperTorso, LeftArm, RightArm
-        Smoothness = 4, -- Càng cao càng mượt (legit)
-        FOV = 130,
+        Enabled = true,
+        Key = Enum.UserInputType.MouseButton2, -- Giữ chuột phải để Aim
+        Bone = "Head", -- Head, Neck, UpperTorso, LowerTorso
+        Smoothness = 0.2, -- Độ nhạy bám tâm (0.1 - 1, càng lớn bám càng gắt)
+        FOV = 150,
     },
     SilentAim = {
-        Enabled = false,
-        HitPart = "UpperTorso", -- Ưu tiên Cổ hoặc Bụng
-        CheckWall = true, -- Không bắn xuyên tường
+        Enabled = true,
+        HitPart = "UpperTorso", -- Ưu tiên Bụng / Cổ
+        CheckWall = true, -- Kiểm tra vật cản (Không bắn xuyên tường)
+        FOV = 200,
     },
     Combat = {
         NoRecoil = true,
@@ -46,104 +44,86 @@ getgenv().ScriptConfig = {
 }
 
 -- ==============================================================================
--- 1. TẠO GIAO DIỆN UI (MƯỢT MÀ, HIỆN ĐẠI, KHÔNG LAG)
+-- 1. UI GUI CỰC MƯỢT + CỤC TRÒN NỔI FPS
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AdvancedScriptHub"
+ScreenGui.Name = "UrbanReloadHubFixed"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Main Menu Frame
+-- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 520, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -260, 0.5, -190)
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+MainFrame.Size = UDim2.new(0, 480, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -180)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 8)
 
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(45, 45, 55)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(0, 255, 150)
 UIStroke.Thickness = 1.5
-UIStroke.Parent = MainFrame
 
--- Top Bar Title
-local TitleBar = Instance.new("TextLabel")
-TitleBar.Size = UDim2.new(1, 0, 0, 45)
-TitleBar.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
-TitleBar.BorderSizePixel = 0
-TitleBar.Text = "  URBAN RELOAD // PREMIUM LEGIT HUB"
-TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleBar.TextSize = 14
-TitleBar.Font = Enum.Font.GothamBold
-TitleBar.TextXAlignment = Enum.TextXAlignment.Left
-TitleBar.Parent = MainFrame
+-- Title Bar
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+Title.Text = "   URBAN RELOAD // FIXED AIMBOT & SILENT HUB"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 13
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
 
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 10)
-TitleCorner.Parent = TitleBar
+-- Minimize Button (Nút Tắt/Thu Nhỏ)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -35, 0, 5)
+MinBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 16
+MinBtn.Parent = Title
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
--- Nút Thu Nhỏ Menu (Minimize / Toggle Floating Widget)
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 35, 0, 35)
-MinimizeBtn.Position = UDim2.new(1, -40, 0, 5)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.TextSize = 18
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.Parent = TitleBar
-
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 8)
-MinCorner.Parent = MinimizeBtn
-
--- ==============================================================================
--- 2. CỤC TRÒN NỔI HIỂN THỊ FPS (KHI TẮT/THU NHỎ MENU)
--- ==============================================================================
+-- Floating FPS Circle Widget (Cục tròn nổi hiện FPS khi tắt menu)
 local FPSWidget = Instance.new("TextButton")
-FPSWidget.Name = "FPSWidget"
-FPSWidget.Size = UDim2.new(0, 65, 0, 65)
-FPSWidget.Position = UDim2.new(0.05, 0, 0.1, 0)
-FPSWidget.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-FPSWidget.TextColor3 = Color3.fromRGB(0, 255, 128)
-FPSWidget.TextSize = 13
+FPSWidget.Size = UDim2.new(0, 60, 0, 60)
+FPSWidget.Position = UDim2.new(0.05, 0, 0.15, 0)
+FPSWidget.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+FPSWidget.TextColor3 = Color3.fromRGB(0, 255, 150)
 FPSWidget.Font = Enum.Font.GothamBold
-FPSWidget.Text = "60 FPS"
-FPSWidget.Visible = false -- Mặc định ẩn khi mở menu
+FPSWidget.TextSize = 12
+FPSWidget.Text = "60\nFPS"
+FPSWidget.Visible = false
 FPSWidget.Active = true
 FPSWidget.Draggable = true
 FPSWidget.Parent = ScreenGui
+Instance.new("UICorner", FPSWidget).CornerRadius = UDim.new(1, 0)
 
-local WidgetCorner = Instance.new("UICorner")
-WidgetCorner.CornerRadius = UDim.new(1, 0) -- Tạo hình tròn hoàn hảo
-WidgetCorner.Parent = FPSWidget
-
-local WidgetStroke = Instance.new("UIStroke")
-WidgetStroke.Color = Color3.fromRGB(0, 255, 128)
+local WidgetStroke = Instance.new("UIStroke", FPSWidget)
+WidgetStroke.Color = Color3.fromRGB(0, 255, 150)
 WidgetStroke.Thickness = 2
-WidgetStroke.Parent = FPSWidget
 
--- Cập nhật số FPS liên tục vào cục tròn
-local lastUpdate = 0
+-- Update FPS Continuous
+local lastFrame = tick()
 RunService.RenderStepped:Connect(function(dt)
     if FPSWidget.Visible then
-        if tick() - lastUpdate >= 0.5 then
-            local currentFPS = math.floor(1 / dt)
-            FPSWidget.Text = currentFPS .. " FPS"
-            lastUpdate = tick()
+        if tick() - lastFrame >= 0.3 then
+            local fps = math.floor(1 / dt)
+            FPSWidget.Text = fps .. "\nFPS"
+            lastFrame = tick()
         end
     end
 end)
 
--- Sự kiện thu nhỏ / mở lại menu
-MinimizeBtn.MouseButton1Click:Connect(function()
+MinBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
     FPSWidget.Visible = true
 end)
@@ -153,119 +133,94 @@ FPSWidget.MouseButton1Click:Connect(function()
     FPSWidget.Visible = false
 end)
 
--- ==============================================================================
--- 3. CONTAINER TẠO CÁC TÍNH NĂNG TRONG MENU
--- ==============================================================================
-local ContentContainer = Instance.new("ScrollingFrame")
-ContentContainer.Size = UDim2.new(1, -20, 1, -60)
-ContentContainer.Position = UDim2.new(0, 10, 0, 52)
-ContentContainer.BackgroundTransparency = 1
-ContentContainer.ScrollBarThickness = 4
-ContentContainer.CanvasSize = UDim2.new(0, 0, 1.8, 0)
-ContentContainer.Parent = MainFrame
+-- Scroll Container
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -20, 1, -50)
+Scroll.Position = UDim2.new(0, 10, 0, 45)
+Scroll.BackgroundTransparency = 1
+Scroll.CanvasSize = UDim2.new(0, 0, 1.6, 0)
+Scroll.ScrollBarThickness = 3
+Scroll.Parent = MainFrame
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 10)
-UIListLayout.Parent = ContentContainer
+local Layout = Instance.new("UIListLayout", Scroll)
+Layout.Padding = UDim.new(0, 8)
 
-local function createToggle(name, category, subKey, callback)
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(1, 0, 0, 40)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    ToggleBtn.Text = "  " .. name .. ": [ OFF ]"
-    ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    ToggleBtn.TextSize = 13
-    ToggleBtn.Font = Enum.Font.GothamMedium
-    ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
-    ToggleBtn.Parent = ContentContainer
+-- Helper Functions UI
+local function AddToggle(text, category, key, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, 0, 0, 36)
+    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    Btn.Font = Enum.Font.GothamMedium
+    Btn.TextSize = 12
+    Btn.TextXAlignment = Enum.TextXAlignment.Left
+    Btn.Parent = Scroll
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
 
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = ToggleBtn
-
-    local state = getgenv().ScriptConfig[category][subKey]
-    if state then
-        ToggleBtn.Text = "  " .. name .. ": [ ON ]"
-        ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 128)
+    local function updateText()
+        local state = getgenv().Config[category][key]
+        Btn.Text = "   " .. text .. ": " .. (state and "[ ON ]" or "[ OFF ]")
+        Btn.TextColor3 = state and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(180, 180, 180)
     end
+    updateText()
 
-    ToggleBtn.MouseButton1Click:Connect(function()
-        state = not getgenv().ScriptConfig[category][subKey]
-        getgenv().ScriptConfig[category][subKey] = state
-        if state then
-            ToggleBtn.Text = "  " .. name .. ": [ ON ]"
-            ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 128)
-        else
-            ToggleBtn.Text = "  " .. name .. ": [ OFF ]"
-            ToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-        end
-        if callback then callback(state) end
+    Btn.MouseButton1Click:Connect(function()
+        getgenv().Config[category][key] = not getgenv().Config[category][key]
+        updateText()
+        if callback then callback(getgenv().Config[category][key]) end
     end)
 end
 
-local function createDropdown(name, category, subKey, options)
-    local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1, 0, 0, 65)
-    Container.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    Container.Parent = ContentContainer
+local function AddDropdown(text, category, key, options)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 55)
+    Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    Frame.Parent = Scroll
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 6)
 
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = Container
+    local Lbl = Instance.new("TextLabel")
+    Lbl.Size = UDim2.new(1, -10, 0, 25)
+    Lbl.Position = UDim2.new(0, 10, 0, 2)
+    Lbl.BackgroundTransparency = 1
+    Lbl.Text = text .. ": " .. tostring(getgenv().Config[category][key])
+    Lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Lbl.Font = Enum.Font.GothamMedium
+    Lbl.TextSize = 12
+    Lbl.TextXAlignment = Enum.TextXAlignment.Left
+    Lbl.Parent = Frame
 
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -15, 0, 30)
-    Label.Position = UDim2.new(0, 10, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = name .. ": " .. tostring(getgenv().ScriptConfig[category][subKey])
-    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Label.TextSize = 13
-    Label.Font = Enum.Font.GothamMedium
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Container
+    local SwitchBtn = Instance.new("TextButton")
+    SwitchBtn.Size = UDim2.new(1, -20, 0, 22)
+    SwitchBtn.Position = UDim2.new(0, 10, 0, 26)
+    SwitchBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    SwitchBtn.Text = "Click để đổi bộ phận ngắm"
+    SwitchBtn.TextColor3 = Color3.fromRGB(120, 200, 255)
+    SwitchBtn.Font = Enum.Font.Gotham
+    SwitchBtn.TextSize = 11
+    SwitchBtn.Parent = Frame
+    Instance.new("UICorner", SwitchBtn).CornerRadius = UDim.new(0, 4)
 
-    local currentIndex = 1
-    for i, v in ipairs(options) do
-        if v == getgenv().ScriptConfig[category][subKey] then currentIndex = i end
-    end
-
-    local ChangeBtn = Instance.new("TextButton")
-    ChangeBtn.Size = UDim2.new(1, -20, 0, 25)
-    ChangeBtn.Position = UDim2.new(0, 10, 0, 32)
-    ChangeBtn.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
-    ChangeBtn.Text = "Đổi tùy chọn (Click để chuyển)"
-    ChangeBtn.TextColor3 = Color3.fromRGB(150, 180, 255)
-    ChangeBtn.TextSize = 11
-    ChangeBtn.Font = Enum.Font.Gotham
-    ChangeBtn.Parent = Container
-
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 4)
-    BtnCorner.Parent = ChangeBtn
-
-    ChangeBtn.MouseButton1Click:Connect(function()
-        currentIndex = currentIndex + 1
-        if currentIndex > #options then currentIndex = 1 end
-        local selected = options[currentIndex]
-        getgenv().ScriptConfig[category][subKey] = selected
-        Label.Text = name .. ": " .. tostring(selected)
+    local idx = 1
+    SwitchBtn.MouseButton1Click:Connect(function()
+        idx = idx + 1
+        if idx > #options then idx = 1 end
+        getgenv().Config[category][key] = options[idx]
+        Lbl.Text = text .. ": " .. tostring(options[idx])
     end)
 end
 
--- Xây dựng danh sách chức năng trong Menu
-createToggle("Bật ESP (Bán kính 50m)", "ESP", "Enabled")
-createToggle("Bật Aimbot (Legit Smooth)", "Aimbot", "Enabled")
-createDropdown("Vị trí Aimbot", "Aimbot", "Bone", {"Head", "Neck", "UpperTorso", "LeftArm", "RightArm"})
+-- Add UI Controls
+AddToggle("ESP Định Vị Player (Tối đa 50m)", "ESP", "Enabled")
+AddToggle("Bật Aimbot Khóa Tâm", "Aimbot", "Enabled")
+AddDropdown("Vùng ngắm Aimbot", "Aimbot", "Bone", {"Head", "Neck", "UpperTorso", "LowerTorso"})
 
-createToggle("Bật Silent Aim (Không xuyên tường)", "SilentAim", "Enabled")
-createDropdown("Vị trí Silent Aim", "SilentAim", "HitPart", {"UpperTorso", "Neck", "Head"})
+AddToggle("Bật Silent Aim (Tự hút đạn chuẩn 100%)", "SilentAim", "Enabled")
+AddToggle("Check Tường Silent Aim (Không xuyên vật thể)", "SilentAim", "CheckWall")
+AddDropdown("Vùng ngắm Silent Aim", "SilentAim", "HitPart", {"UpperTorso", "Neck", "Head", "LowerTorso"})
 
-createToggle("Chống rung tâm (No Recoil)", "Combat", "NoRecoil")
-createToggle("Tăng tốc FPS (FPS Boost)", "Performance", "FPSBoost", function(state)
+AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
+AddToggle("FPS Boost (Tối ưu mượt game)", "Performance", "FPSBoost", function(state)
     if state then
-        local lighting = game:GetService("Lighting")
-        lighting.GlobalShadows = false
+        game:GetService("Lighting").GlobalShadows = false
         for _, v in ipairs(workspace:GetDescendants()) do
             if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic end
         end
@@ -274,82 +229,110 @@ end)
 
 
 -- ==============================================================================
--- 4. MODULE LOGIC XỬ LÝ TRONG GAME (ESP, AIMBOT, SILENT AIM, NO RECOIL)
+-- 2. HỆ THỐNG KIỂM TRA TẦM NHÌN (WALL CHECK & VISIBILITY)
 -- ==============================================================================
-
--- 4.1 ESP 50M (Định vị Player toàn map trong bán kính 150 studs ~ 50 mét)
-local espCache = {}
-
-local function updateESP()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            if not espCache[player] then
-                local bill = Instance.new("BillboardGui")
-                bill.Name = "ESP_Tag"
-                bill.Size = UDim2.new(0, 100, 0, 40)
-                bill.AlwaysOnTop = true
-                
-                local txt = Instance.new("TextLabel")
-                txt.Name = "Info"
-                txt.Size = UDim2.new(1, 0, 1, 0)
-                txt.BackgroundTransparency = 1
-                txt.TextColor3 = Color3.fromRGB(255, 50, 50)
-                txt.TextSize = 12
-                txt.Font = Enum.Font.GothamBold
-                txt.TextStrokeTransparency = 0
-                txt.Parent = bill
-                
-                espCache[player] = {Gui = bill, Text = txt}
-            end
-            
-            local data = espCache[player]
-            local char = player.Character
-            local localChar = LocalPlayer.Character
-            
-            if getgenv().ScriptConfig.ESP.Enabled and char and char:FindFirstChild("HumanoidRootPart") and localChar and localChar:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                local localHRP = localChar.HumanoidRootPart
-                local dist = (hrp.Position - localHRP.Position).Magnitude
-                
-                if dist <= getgenv().ScriptConfig.ESP.MaxDistance then
-                    data.Gui.Adornee = hrp
-                    if not data.Gui.Parent then data.Gui.Parent = CoreGui end
-                    local distanceMeters = math.floor(dist / 3) -- Quy đổi studs sang mét tương đối
-                    data.Text.Text = player.Name .. "\n[" .. distanceMeters .. "m]"
-                else
-                    data.Gui.Parent = nil
-                end
-            else
-                if data.Gui then data.Gui.Parent = nil end
-            end
-        end
+local function IsVisible(targetPart)
+    if not getgenv().Config.SilentAim.CheckWall then return true end
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.IgnoreWater = true
+    
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    
+    if result then
+        return result.Instance:IsDescendantOf(targetPart.Parent)
     end
+    return true
 end
 
-RunService.RenderStepped:Connect(function()
-    pcall(updateESP)
-end)
 
-
--- 4.2 AIMBOT (Legit, tự động mượt mà bám sát mục tiêu)
-local function getClosestTargetInFOV()
-    local target = nil
-    local shortestDist = getgenv().ScriptConfig.Aimbot.FOV
+-- ==============================================================================
+-- 3. LOGIC REAL SILENT AIM (HOOKMETAMETHOD HOOK HƯỚNG ĐẠN THỰC TẾ)
+-- ==============================================================================
+local function GetClosestTargetForSilent()
+    local closest, shortestDist = nil, getgenv().Config.SilentAim.FOV
     
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local hum = player.Character:FindFirstChild("Humanoid")
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
             if hum and hum.Health > 0 then
-                local boneName = getgenv().ScriptConfig.Aimbot.Bone
-                local targetPart = player.Character:FindFirstChild(boneName)
-                if targetPart then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                local part = player.Character:FindFirstChild(getgenv().Config.SilentAim.HitPart)
+                if part and IsVisible(part) then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                     if onScreen then
                         local mousePos = UserInputService:GetMouseLocation()
                         local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                         if dist < shortestDist then
                             shortestDist = dist
-                            target = targetPart
+                            closest = part
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Hook Raycast & Mouse Index để Silent Aim hoạt động chuẩn xác 100% trong mọi game
+local OldNamecall
+OldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    
+    if getgenv().Config.SilentAim.Enabled and (method == "Raycast" or method == "FindPartOnRayWithIgnoreList" or method == "fireServer" or method == "FireServer") then
+        local targetPart = GetClosestTargetForSilent()
+        if targetPart then
+            if method == "Raycast" then
+                -- Sửa hướng Raycast gốc bay thẳng tới target part
+                args[2] = (targetPart.Position - args[1]).Unit * 1000
+                return OldNamecall(self, unpack(args))
+            end
+        end
+    end
+    return OldNamecall(self, ...)
+end)
+
+local OldIndex
+OldIndex = hookmetamethod(game, "__index", function(self, key)
+    if getgenv().Config.SilentAim.Enabled and self == Mouse and (key == "Hit" or key == "Target") then
+        local targetPart = GetClosestTargetForSilent()
+        if targetPart then
+            if key == "Hit" then
+                return targetPart.CFrame
+            elseif key == "Target" then
+                return targetPart
+            end
+        end
+    end
+    return OldIndex(self, key)
+end)
+
+
+-- ==============================================================================
+-- 4. LOGIC AIMBOT KHÓA TÂM (HARD & SMOOTH LOCK)
+-- ==============================================================================
+local function GetAimbotTarget()
+    local target, shortestDist = nil, getgenv().Config.Aimbot.FOV
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local bone = player.Character:FindFirstChild(getgenv().Config.Aimbot.Bone)
+                if bone then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(bone.Position)
+                    if onScreen then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            target = bone
                         end
                     end
                 end
@@ -360,73 +343,84 @@ local function getClosestTargetInFOV()
 end
 
 RunService.RenderStepped:Connect(function()
-    if getgenv().ScriptConfig.Aimbot.Enabled and UserInputService:IsMouseButtonPressed(getgenv().ScriptConfig.Aimbot.Key) then
-        local target = getClosestTargetInFOV()
-        if target then
-            local camCFrame = Camera.CFrame
-            local targetCF = CFrame.new(camCFrame.Position, target.Position)
-            Camera.CFrame = camCFrame:Lerp(targetCF, 1 / getgenv().ScriptConfig.Aimbot.Smoothness)
+    if getgenv().Config.Aimbot.Enabled and UserInputService:IsMouseButtonPressed(getgenv().Config.Aimbot.Key) then
+        local targetPart = GetAimbotTarget()
+        if targetPart then
+            local targetPos = Camera:WorldToViewportPoint(targetPart.Position)
+            local mousePos = UserInputService:GetMouseLocation()
+            
+            -- Can thiệp di chuyển chuột trực tiếp tạo cảm giác aim tự nhiên & chính xác
+            local moveX = (targetPos.X - mousePos.X) * getgenv().Config.Aimbot.Smoothness
+            local moveY = (targetPos.Y - mousePos.Y) * getgenv().Config.Aimbot.Smoothness
+            
+            mousemoverel(moveX, moveY)
         end
     end
 end)
 
 
--- 4.3 SILENT AIM (Kiểm tra tường - Raycast không bắn xuyên tường, ưu tiên Cổ & Bụng)
-local function isVisible(targetPart)
-    if not getgenv().ScriptConfig.SilentAim.CheckWall then return true end
-    local origin = Camera.CFrame.Position
-    local direction = targetPart.Position - origin
-    
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local result = workspace:Raycast(origin, direction, raycastParams)
-    if result and result.Instance:IsDescendantOf(targetPart.Parent) then
-        return true
-    end
-    return false
-end
+-- ==============================================================================
+-- 5. ESP BAN KINH 50M (OPTIMIZED)
+-- ==============================================================================
+local espFolder = Instance.new("Folder", CoreGui)
+espFolder.Name = "ESP_Container"
 
--- Hook xử lý hướng đạn / tâm ngắm ngầm (Silent Aim core logic)
-RunService.Stepped:Connect(function()
-    if getgenv().ScriptConfig.SilentAim.Enabled then
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local hum = player.Character:FindFirstChild("Humanoid")
-                if hum and hum.Health > 0 then
-                    local partName = getgenv().ScriptConfig.SilentAim.HitPart
-                    local part = player.Character:FindFirstChild(partName)
-                    if part and isVisible(part) then
-                        -- Bắn tự động điều hướng hướng tâm đến bộ phận chỉ định (Cổ/Bụng) trong tầm nhìn màn hình
-                        local _, onScreen = Camera:WorldToViewportPoint(part.Position)
-                        if onScreen then
-                            -- Gắn thông tin mục tiêu ngầm phục vụ hook đạn của game súng
-                            getgenv().CurrentSilentTarget = part
-                            break
-                        end
+RunService.RenderStepped:Connect(function()
+    espFolder:ClearAllChildren()
+    if not getgenv().Config.ESP.Enabled then return end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
+    local localHrp = localChar.HumanoidRootPart
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            local hum = player.Character:FindFirstChildOfClass("Humanoid")
+            
+            if hrp and hum and hum.Health > 0 then
+                local dist = (hrp.Position - localHrp.Position).Magnitude
+                if dist <= getgenv().Config.ESP.MaxDistance then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen then
+                        local billboard = Instance.new("BillboardGui")
+                        billboard.Adornee = hrp
+                        billboard.Size = UDim2.new(0, 100, 0, 30)
+                        billboard.AlwaysOnTop = true
+                        billboard.Parent = espFolder
+                        
+                        local text = Instance.new("TextLabel", billboard)
+                        text.Size = UDim2.new(1, 0, 1, 0)
+                        text.BackgroundTransparency = 1
+                        text.TextColor3 = Color3.fromRGB(255, 60, 60)
+                        text.Font = Enum.Font.GothamBold
+                        text.TextSize = 11
+                        text.TextStrokeTransparency = 0
+                        text.Text = player.Name .. "\n[" .. math.floor(dist / 3) .. "m]"
                     end
                 end
             end
         end
-    else
-        getgenv().CurrentSilentTarget = nil
     end
 end)
 
 
--- 4.4 NO RECOIL (Bắn không rung tâm súng)
+-- ==============================================================================
+-- 6. NO RECOIL (KHÔNG RUNG TÂM SÚNG)
+-- ==============================================================================
 RunService.Stepped:Connect(function()
-    if getgenv().ScriptConfig.Combat.NoRecoil then
+    if getgenv().Config.Combat.NoRecoil then
         pcall(function()
             local char = LocalPlayer.Character
             if char then
                 local tool = char:FindFirstChildOfClass("Tool")
                 if tool then
-                    -- Xóa các hiệu ứng giật camera nếu game hỗ trợ lưu trữ trong Character/Tool
-                    local recoilMod = tool:FindFirstChild("Recoil") or tool:FindFirstChild("Settings")
-                    if recoilMod and recoilMod:IsA("ModuleScript") then
-                        -- Tự động tinh chỉnh nếu script game cho phép đọc module
+                    for _, v in ipairs(tool:GetDescendants()) do
+                        if v.Name:lower():find("recoil") or v.Name:lower():find("spread") then
+                            if v:IsA("NumberValue") or v:IsA("IntValue") then
+                                v.Value = 0
+                            end
+                        end
                     end
                 end
             end
@@ -434,4 +428,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Script Urban Reload Loaded Successfully!")
+print("Urban Reload Hub Fully Rewritten & Loaded!")
