@@ -1,8 +1,8 @@
 -- ==============================================================================
--- URBAN RELOAD - ULTIMATE BYPASS & FOV SILENT AIM HUB (FIXED KICK)
+-- URBAN RELOAD - ULTIMATE BYPASS & TRUE SILENT AIM (FOV ORANGE CIRCLE)
 -- ==============================================================================
 
--- 1. HỆ THỐNG BYPASS ANTI-CHEAT CHUYÊN SÂU (CHẶN QUÉT EXECUTOR & KICK)
+-- 1. LỚP BYPASS CHUYÊN SÂU (CHẶN QUÉT EXECUTOR & KICK ANTI-CHEAT)
 pcall(function()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
@@ -32,19 +32,21 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- Xóa UI cũ nếu có
-if CoreGui:FindFirstChild("UrbanReloadUltimateBypassHub") then
-    CoreGui.UrbanReloadUltimateBypassHub:Destroy()
+-- Sử dụng gethui() nếu executor hỗ trợ để ẩn UI an toàn khỏi anti-cheat
+local ProtectedGui = gethui and gethui() or CoreGui
+
+if ProtectedGui:FindFirstChild("UrbanReloadTrueSilentHub") then
+    ProtectedGui.UrbanReloadTrueSilentHub:Destroy()
 end
 
 -- Master Config
-getgenv().UR_BypassConfig = {
+getgenv().UR_SilentConfig = {
     SilentAim = {
         Enabled = false,
         TeamCheck = true,
         CheckWall = true, -- Không bắn xuyên tường (Wall Check)
         HitPart = "UpperTorso", -- Ưu tiên Cổ hoặc Bụng
-        FOVRadius = 150, -- Bán kính vòng tròn FOV tùy chỉnh to nhỏ
+        FOVRadius = 160, -- Bán kính vòng tròn FOV (có thể chỉnh to nhỏ)
         ShowFOV = true,
     },
     ESP = {
@@ -57,20 +59,20 @@ getgenv().UR_BypassConfig = {
 }
 
 -- ==============================================================================
--- 2. VÒNG TRÒN FOV CỐ ĐỊNH GIỮA MÀN HÌNH (MÀU VÀNG CAM)
+-- 2. VÒNG TRÒN FOV VÀNG CAM CỐ ĐỊNH CHÍNH GIỮA TÂM (ĐÚNG ẢNH MẪU)
 -- ==============================================================================
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = false
-FOVCircle.Radius = getgenv().UR_BypassConfig.SilentAim.FOVRadius
-FOVCircle.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam y hệt mẫu
+FOVCircle.Radius = getgenv().UR_SilentConfig.SilentAim.FOVRadius
+FOVCircle.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam y hệt trong ảnh mẫu
 FOVCircle.Thickness = 2
 FOVCircle.Filled = false
 FOVCircle.Transparency = 0.9
 
 RunService.RenderStepped:Connect(function()
-    if getgenv().UR_BypassConfig.SilentAim.Enabled and getgenv().UR_BypassConfig.SilentAim.ShowFOV then
+    if getgenv().UR_SilentConfig.SilentAim.Enabled and getgenv().UR_SilentConfig.SilentAim.ShowFOV then
         FOVCircle.Visible = true
-        FOVCircle.Radius = getgenv().UR_BypassConfig.SilentAim.FOVRadius
+        FOVCircle.Radius = getgenv().UR_SilentConfig.SilentAim.FOVRadius
         FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     else
         FOVCircle.Visible = false
@@ -81,13 +83,13 @@ end)
 -- 3. GIAO DIỆN UI & CỤC TRÒN NỔI FPS
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadUltimateBypassHub"
-ScreenGui.Parent = CoreGui
+ScreenGui.Name = "UrbanReloadTrueSilentHub"
+ScreenGui.Parent = ProtectedGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 480, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -190)
+MainFrame.Size = UDim2.new(0, 480, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -180)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -102,7 +104,7 @@ UIStroke.Thickness = 1.5
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-TitleBar.Text = "   URBAN RELOAD // SECURE BYPASS HUB"
+TitleBar.Text = "   URBAN RELOAD // TRUE SILENT AIM HUB"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 13
@@ -185,14 +187,14 @@ local function AddToggle(text, category, key)
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
 
     local function refresh()
-        local state = getgenv().UR_BypassConfig[category][key]
+        local state = getgenv().UR_SilentConfig[category][key]
         Btn.Text = "   " .. text .. ": " .. (state and "[ ON ]" or "[ OFF ]")
         Btn.TextColor3 = state and Color3.fromRGB(255, 170, 0) or Color3.fromRGB(170, 170, 170)
     end
     refresh()
 
     Btn.MouseButton1Click:Connect(function()
-        getgenv().UR_BypassConfig[category][key] = not getgenv().UR_BypassConfig[category][key]
+        getgenv().UR_SilentConfig[category][key] = not getgenv().UR_SilentConfig[category][key]
         refresh()
     end)
 end
@@ -208,7 +210,7 @@ local function AddDropdown(text, category, key, options)
     Lbl.Size = UDim2.new(1, -10, 0, 24)
     Lbl.Position = UDim2.new(0, 10, 0, 2)
     Lbl.BackgroundTransparency = 1
-    Lbl.Text = text .. ": " .. tostring(getgenv().UR_BypassConfig[category][key])
+    Lbl.Text = text .. ": " .. tostring(getgenv().UR_SilentConfig[category][key])
     Lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
     Lbl.Font = Enum.Font.GothamMedium
     Lbl.TextSize = 12
@@ -230,13 +232,13 @@ local function AddDropdown(text, category, key, options)
     Switch.MouseButton1Click:Connect(function()
         idx = idx + 1
         if idx > #options then idx = 1 end
-        getgenv().UR_BypassConfig[category][key] = options[idx]
+        getgenv().UR_SilentConfig[category][key] = options[idx]
         Lbl.Text = text .. ": " .. tostring(options[idx])
     end)
 end
 
-AddHeader("=== SILENT AIM (VÒNG TRÒN FOV) ===")
-AddToggle("Bật Silent Aim (Trong Vòng FOV)", "SilentAim", "Enabled")
+AddHeader("=== SILENT AIM (TRONG VÒNG FOV VÀNG CAM) ===")
+AddToggle("Bật Silent Aim", "SilentAim", "Enabled")
 AddToggle("Team Check (Không bắn đồng đội)", "SilentAim", "TeamCheck")
 AddToggle("Check Tường (Không bắn xuyên vật thể)", "SilentAim", "CheckWall")
 AddToggle("Hiển thị vòng FOV", "SilentAim", "ShowFOV")
@@ -251,7 +253,7 @@ AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
 -- 4. WALL CHECK (KHÔNG XUYÊN TƯỜNG)
 -- ==============================================================================
 local function IsVisible(targetPart)
-    if not getgenv().UR_BypassConfig.SilentAim.CheckWall then return true end
+    if not getgenv().UR_SilentConfig.SilentAim.CheckWall then return true end
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
     
@@ -272,20 +274,20 @@ end
 -- 5. LOGIC SILENT AIM BẮN TRONG VÒNG TRÒN FOV
 -- ==============================================================================
 local function GetFOVSilentTarget()
-    local target, shortestDist = nil, getgenv().UR_BypassConfig.SilentAim.FOVRadius
+    local target, shortestDist = nil, getgenv().UR_SilentConfig.SilentAim.FOVRadius
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            if not (getgenv().UR_BypassConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
+            if not (getgenv().UR_SilentConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
                 local char = player.Character
                 if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                    local part = char:FindFirstChild(getgenv().UR_BypassConfig.SilentAim.HitPart)
+                    local part = char:FindFirstChild(getgenv().UR_SilentConfig.SilentAim.HitPart)
                     if part and IsVisible(part) then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
                             local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-                            if dist <= getgenv().UR_BypassConfig.SilentAim.FOVRadius and dist < shortestDist then
+                            if dist <= getgenv().UR_SilentConfig.SilentAim.FOVRadius and dist < shortestDist then
                                 shortestDist = dist
                                 target = part
                             end
@@ -298,12 +300,13 @@ local function GetFOVSilentTarget()
     return target
 end
 
+-- Hook an toàn qua Mouse để bẻ đường đạn trong vòng FOV mà không bị anti-cheat phát hiện
 pcall(function()
     local mouseMt = getrawmetatable(Mouse)
     setreadonly(mouseMt, false)
     local oldMouseIndex = mouseMt.__index
     mouseMt.__index = newcclosure(function(self, key)
-        if getgenv().UR_BypassConfig.SilentAim.Enabled then
+        if getgenv().UR_SilentConfig.SilentAim.Enabled then
             local targetPart = GetFOVSilentTarget()
             if targetPart then
                 if key == "Hit" then
@@ -319,14 +322,14 @@ end)
 
 
 -- ==============================================================================
--- 6. ESP 50M
+-- 6. ESP BÁN KÍNH 50M (~150 STUDS)
 -- ==============================================================================
-local espFolder = Instance.new("Folder", CoreGui)
-espFolder.Name = "UR_Bypass_ESP"
+local espFolder = Instance.new("Folder", ProtectedGui)
+espFolder.Name = "UR_TrueSilent_ESP"
 
 RunService.RenderStepped:Connect(function()
     espFolder:ClearAllChildren()
-    if not getgenv().UR_BypassConfig.ESP.Enabled then return end
+    if not getgenv().UR_SilentConfig.ESP.Enabled then return end
     
     local localChar = LocalPlayer.Character
     if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
@@ -339,7 +342,7 @@ RunService.RenderStepped:Connect(function()
             
             if hrp and hum and hum.Health > 0 then
                 local dist = (hrp.Position - localHrp.Position).Magnitude
-                if dist <= getgenv().UR_BypassConfig.ESP.MaxDistance then
+                if dist <= getgenv().UR_SilentConfig.ESP.MaxDistance then
                     local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                     if onScreen then
                         local bill = Instance.new("BillboardGui", espFolder)
@@ -364,10 +367,10 @@ end)
 
 
 -- ==============================================================================
--- 7. NO RECOIL
+-- 7. NO RECOIL (CHỐNG RUNG TÂM SÚNG)
 -- ==============================================================================
 RunService.Stepped:Connect(function()
-    if getgenv().UR_BypassConfig.Combat.NoRecoil then
+    if getgenv().UR_SilentConfig.Combat.NoRecoil then
         pcall(function()
             local char = LocalPlayer.Character
             if char then
@@ -384,4 +387,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload Secure Bypass Hub Loaded!")
+print("Urban Reload True Silent Hub Loaded Successfully!")
