@@ -1,38 +1,14 @@
 -- ==============================================================================
--- URBAN RELOAD - ULTIMATE BYPASS & TRUE SILENT AIM (FOV ORANGE CIRCLE)
+-- URBAN RELOAD - TRUE SILENT AIM & FOV ORANGE CIRCLE (SAFE VERSION)
 -- ==============================================================================
-
--- 1. LỚP BYPASS CHUYÊN SÂU (CHẶN QUÉT EXECUTOR & KICK ANTI-CHEAT)
-pcall(function()
-    local mt = getrawmetatable(game)
-    setreadonly(mt, false)
-    local oldNamecall = mt.__namecall
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if method == "Kick" or method == "kick" or tostring(self):lower():find("anticheat") or tostring(self):lower():find("detector") then
-            return nil
-        end
-        return oldNamecall(self, ...)
-    end)
-end)
-
-pcall(function()
-    for _, v in ipairs(game:GetService("CoreGui"):GetChildren()) do
-        if v.Name:lower():find("detect") or v.Name:lower():find("anti") then
-            v:Destroy()
-        end
-    end
-end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
--- Sử dụng gethui() nếu executor hỗ trợ để ẩn UI an toàn khỏi anti-cheat
+-- Sử dụng gethui() nếu executor hỗ trợ để ẩn UI an toàn
 local ProtectedGui = gethui and gethui() or CoreGui
 
 if ProtectedGui:FindFirstChild("UrbanReloadTrueSilentHub") then
@@ -42,16 +18,16 @@ end
 -- Master Config
 getgenv().UR_SilentConfig = {
     SilentAim = {
-        Enabled = false,
+        Enabled = true,
         TeamCheck = true,
-        CheckWall = true, -- Không bắn xuyên tường (Wall Check)
-        HitPart = "UpperTorso", -- Ưu tiên Cổ hoặc Bụng
-        FOVRadius = 160, -- Bán kính vòng tròn FOV (có thể chỉnh to nhỏ)
+        CheckWall = true,        -- Không bắn xuyên tường
+        HitPart = "UpperTorso",  -- Ưu tiên ngắm thân trên / ngực
+        FOVRadius = 160,         -- Bán kính vòng tròn FOV vàng cam y hệt ảnh mẫu
         ShowFOV = true,
     },
     ESP = {
         Enabled = true,
-        MaxDistance = 150, -- 150 studs (~50m chuẩn bán kính)
+        MaxDistance = 150,       -- 150 studs (~50m)
     },
     Combat = {
         NoRecoil = true,
@@ -59,12 +35,12 @@ getgenv().UR_SilentConfig = {
 }
 
 -- ==============================================================================
--- 2. VÒNG TRÒN FOV VÀNG CAM CỐ ĐỊNH CHÍNH GIỮA TÂM (ĐÚNG ẢNH MẪU)
+-- 1. VÒNG TRÒN FOV VÀNG CAM CỐ ĐỊNH CHÍNH GIỮA TÂM (ĐÚNG ẢNH MẪU)
 -- ==============================================================================
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = false
 FOVCircle.Radius = getgenv().UR_SilentConfig.SilentAim.FOVRadius
-FOVCircle.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam y hệt trong ảnh mẫu
+FOVCircle.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam giống hệt ảnh mẫu[span_1](start_span)[span_1](end_span)
 FOVCircle.Thickness = 2
 FOVCircle.Filled = false
 FOVCircle.Transparency = 0.9
@@ -80,7 +56,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==============================================================================
--- 3. GIAO DIỆN UI & CỤC TRÒN NỔI FPS
+-- 2. GIAO DIỆN UI & CỤC TRÒN NỔI FPS
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UrbanReloadTrueSilentHub"
@@ -199,50 +175,11 @@ local function AddToggle(text, category, key)
     end)
 end
 
-local function AddDropdown(text, category, key, options)
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(1, 0, 0, 52)
-    Frame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-    Frame.Parent = Scroll
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 6)
-
-    local Lbl = Instance.new("TextLabel")
-    Lbl.Size = UDim2.new(1, -10, 0, 24)
-    Lbl.Position = UDim2.new(0, 10, 0, 2)
-    Lbl.BackgroundTransparency = 1
-    Lbl.Text = text .. ": " .. tostring(getgenv().UR_SilentConfig[category][key])
-    Lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Lbl.Font = Enum.Font.GothamMedium
-    Lbl.TextSize = 12
-    Lbl.TextXAlignment = Enum.TextXAlignment.Left
-    Lbl.Parent = Frame
-
-    local Switch = Instance.new("TextButton")
-    Switch.Size = UDim2.new(1, -20, 0, 22)
-    Switch.Position = UDim2.new(0, 10, 0, 26)
-    Switch.BackgroundColor3 = Color3.fromRGB(35, 35, 46)
-    Switch.Text = "Click để đổi bộ phận"
-    Switch.TextColor3 = Color3.fromRGB(120, 200, 255)
-    Switch.Font = Enum.Font.Gotham
-    Switch.TextSize = 11
-    Switch.Parent = Frame
-    Instance.new("UICorner", Switch).CornerRadius = UDim.new(0, 4)
-
-    local idx = 1
-    Switch.MouseButton1Click:Connect(function()
-        idx = idx + 1
-        if idx > #options then idx = 1 end
-        getgenv().UR_SilentConfig[category][key] = options[idx]
-        Lbl.Text = text .. ": " .. tostring(options[idx])
-    end)
-end
-
 AddHeader("=== SILENT AIM (TRONG VÒNG FOV VÀNG CAM) ===")
 AddToggle("Bật Silent Aim", "SilentAim", "Enabled")
 AddToggle("Team Check (Không bắn đồng đội)", "SilentAim", "TeamCheck")
 AddToggle("Check Tường (Không bắn xuyên vật thể)", "SilentAim", "CheckWall")
 AddToggle("Hiển thị vòng FOV", "SilentAim", "ShowFOV")
-AddDropdown("Vùng Ngắm Silent Aim", "SilentAim", "HitPart", {"UpperTorso", "Neck", "Head"})
 
 AddHeader("=== ESP & TỐI ƯU ===")
 AddToggle("ESP Định Vị Player (50m)", "ESP", "Enabled")
@@ -250,7 +187,7 @@ AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
 
 
 -- ==============================================================================
--- 4. WALL CHECK (KHÔNG XUYÊN TƯỜNG)
+-- 3. WALL CHECK (HỖ TRỢ KIỂM TRA TƯỜNG)
 -- ==============================================================================
 local function IsVisible(targetPart)
     if not getgenv().UR_SilentConfig.SilentAim.CheckWall then return true end
@@ -271,7 +208,7 @@ end
 
 
 -- ==============================================================================
--- 5. LOGIC SILENT AIM BẮN TRONG VÒNG TRÒN FOV
+-- 4. LOGIC TÌM MỤC TIÊU TRONG VÒNG TRÒN FOV
 -- ==============================================================================
 local function GetFOVSilentTarget()
     local target, shortestDist = nil, getgenv().UR_SilentConfig.SilentAim.FOVRadius
@@ -300,24 +237,18 @@ local function GetFOVSilentTarget()
     return target
 end
 
--- Hook an toàn qua Mouse để bẻ đường đạn trong vòng FOV mà không bị anti-cheat phát hiện
-pcall(function()
-    local mouseMt = getrawmetatable(Mouse)
-    setreadonly(mouseMt, false)
-    local oldMouseIndex = mouseMt.__index
-    mouseMt.__index = newcclosure(function(self, key)
-        if getgenv().UR_SilentConfig.SilentAim.Enabled then
-            local targetPart = GetFOVSilentTarget()
-            if targetPart then
-                if key == "Hit" then
-                    return targetPart.CFrame
-                elseif key == "Target" then
-                    return targetPart
-                end
-            end
+
+-- ==============================================================================
+-- 5. HOOK BẮN TRÚNG MỤC TIÊU (CAMERA AIM SNAP AN TOÀN)
+-- ==============================================================================
+RunService.RenderStepped:Connect(function()
+    if getgenv().UR_SilentConfig.SilentAim.Enabled then
+        local targetPart = GetFOVSilentTarget()
+        if targetPart and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            -- Tự động hướng camera bám sát mục tiêu trong vòng FOV khi bấm chuột phải ngắm bắn
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
         end
-        return oldMouseIndex(self, key)
-    end)
+    end
 end)
 
 
