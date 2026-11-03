@@ -1,14 +1,14 @@
 -- ==============================================================================
--- URBAN RELOAD - TRUE SILENT AIM & FOV ORANGE CIRCLE (SAFE VERSION)
+-- URBAN RELOAD - 100% STABLE NO-CRASH FOV AIM & ESP
 -- ==============================================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Sử dụng gethui() nếu executor hỗ trợ để ẩn UI an toàn
 local ProtectedGui = gethui and gethui() or CoreGui
 
 if ProtectedGui:FindFirstChild("UrbanReloadTrueSilentHub") then
@@ -20,14 +20,14 @@ getgenv().UR_SilentConfig = {
     SilentAim = {
         Enabled = true,
         TeamCheck = true,
-        CheckWall = true,        -- Không bắn xuyên tường
-        HitPart = "UpperTorso",  -- Ưu tiên ngắm thân trên / ngực
-        FOVRadius = 160,         -- Bán kính vòng tròn FOV vàng cam y hệt ảnh mẫu
+        CheckWall = true,
+        HitPart = "UpperTorso",
+        FOVRadius = 160, -- Bán kính FOV
         ShowFOV = true,
     },
     ESP = {
         Enabled = true,
-        MaxDistance = 150,       -- 150 studs (~50m)
+        MaxDistance = 150, -- 150 studs (~50m)
     },
     Combat = {
         NoRecoil = true,
@@ -35,34 +35,46 @@ getgenv().UR_SilentConfig = {
 }
 
 -- ==============================================================================
--- 1. VÒNG TRÒN FOV VÀNG CAM CỐ ĐỊNH CHÍNH GIỮA TÂM (ĐÚNG ẢNH MẪU)
--- ==============================================================================
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Visible = false
-FOVCircle.Radius = getgenv().UR_SilentConfig.SilentAim.FOVRadius
-FOVCircle.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam giống hệt ảnh mẫu[span_1](start_span)[span_1](end_span)
-FOVCircle.Thickness = 2
-FOVCircle.Filled = false
-FOVCircle.Transparency = 0.9
-
-RunService.RenderStepped:Connect(function()
-    if getgenv().UR_SilentConfig.SilentAim.Enabled and getgenv().UR_SilentConfig.SilentAim.ShowFOV then
-        FOVCircle.Visible = true
-        FOVCircle.Radius = getgenv().UR_SilentConfig.SilentAim.FOVRadius
-        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    else
-        FOVCircle.Visible = false
-    end
-end)
-
--- ==============================================================================
--- 2. GIAO DIỆN UI & CỤC TRÒN NỔI FPS
+-- 1. SCREEN GUI CHÍNH & VÒNG TRÒN FOV AN TOÀN (DÙNG UI FRAME THAY DRAWING)
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UrbanReloadTrueSilentHub"
 ScreenGui.Parent = ProtectedGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+-- Vòng tròn FOV vàng cam bằng Roblox UI (Không bị crash)
+local FOVFrame = Instance.new("Frame")
+FOVFrame.Name = "SafeFOVCircle"
+FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVFrame.BackgroundTransparency = 1
+FOVFrame.Parent = ScreenGui
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Color = Color3.fromRGB(255, 170, 0) -- Màu vàng cam giống hệt ảnh mẫu[span_1](start_span)[span_1](end_span)
+FOVStroke.Thickness = 2
+FOVStroke.Transparency = 0.2
+FOVStroke.Parent = FOVFrame
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1, 0) -- Biến Frame vuông thành hình tròn
+FOVCorner.Parent = FOVFrame
+
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if getgenv().UR_SilentConfig.SilentAim.Enabled and getgenv().UR_SilentConfig.SilentAim.ShowFOV then
+            local radius = getgenv().UR_SilentConfig.SilentAim.FOVRadius
+            FOVFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
+            FOVFrame.Visible = true
+        else
+            FOVFrame.Visible = false
+        end
+    end)
+end)
+
+-- ==============================================================================
+-- 2. GIAO DIỆN UI MENU HUB & CỤC TRÒN FPS
+-- ==============================================================================
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 480, 0, 360)
 MainFrame.Position = UDim2.new(0.5, -240, 0.5, -180)
@@ -80,7 +92,7 @@ UIStroke.Thickness = 1.5
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-TitleBar.Text = "   URBAN RELOAD // TRUE SILENT AIM HUB"
+TitleBar.Text = "   URBAN RELOAD // SAFE FOV AIM HUB"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 13
@@ -99,7 +111,7 @@ MinBtn.TextSize = 16
 MinBtn.Parent = TitleBar
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 
--- Cục tròn FPS nổi khi tắt menu
+-- Cục tròn FPS nổi
 local FPSWidget = Instance.new("TextButton")
 FPSWidget.Size = UDim2.new(0, 65, 0, 65)
 FPSWidget.Position = UDim2.new(0.05, 0, 0.15, 0)
@@ -175,19 +187,18 @@ local function AddToggle(text, category, key)
     end)
 end
 
-AddHeader("=== SILENT AIM (TRONG VÒNG FOV VÀNG CAM) ===")
-AddToggle("Bật Silent Aim", "SilentAim", "Enabled")
-AddToggle("Team Check (Không bắn đồng đội)", "SilentAim", "TeamCheck")
-AddToggle("Check Tường (Không bắn xuyên vật thể)", "SilentAim", "CheckWall")
-AddToggle("Hiển thị vòng FOV", "SilentAim", "ShowFOV")
+AddHeader("=== CÀI ĐẶT FOV & AIM ===")
+AddToggle("Bật Hỗ Trợ Aim FOV", "SilentAim", "Enabled")
+AddToggle("Team Check (Không khóa đồng đội)", "SilentAim", "TeamCheck")
+AddToggle("Check Tường (Vật thể chắn)", "SilentAim", "CheckWall")
+AddToggle("Hiển thị vòng FOV Vàng Cam", "SilentAim", "ShowFOV")
 
 AddHeader("=== ESP & TỐI ƯU ===")
 AddToggle("ESP Định Vị Player (50m)", "ESP", "Enabled")
 AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
 
-
 -- ==============================================================================
--- 3. WALL CHECK (HỖ TRỢ KIỂM TRA TƯỜNG)
+-- 3. CHECK VẬT THỂ CHẮN (WALL CHECK AN TOÀN)
 -- ==============================================================================
 local function IsVisible(targetPart)
     if not getgenv().UR_SilentConfig.SilentAim.CheckWall then return true end
@@ -206,9 +217,8 @@ local function IsVisible(targetPart)
     return true
 end
 
-
 -- ==============================================================================
--- 4. LOGIC TÌM MỤC TIÊU TRONG VÒNG TRÒN FOV
+-- 4. TIM MỤC TIÊU TRONG VÒNG FOV & BÁM KHÓA AN TOÀN
 -- ==============================================================================
 local function GetFOVSilentTarget()
     local target, shortestDist = nil, getgenv().UR_SilentConfig.SilentAim.FOVRadius
@@ -219,7 +229,7 @@ local function GetFOVSilentTarget()
             if not (getgenv().UR_SilentConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
                 local char = player.Character
                 if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                    local part = char:FindFirstChild(getgenv().UR_SilentConfig.SilentAim.HitPart)
+                    local part = char:FindFirstChild(getgenv().UR_SilentConfig.SilentAim.HitPart) or char:FindFirstChild("Head")
                     if part and IsVisible(part) then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
                         if onScreen then
@@ -237,68 +247,65 @@ local function GetFOVSilentTarget()
     return target
 end
 
-
--- ==============================================================================
--- 5. HOOK BẮN TRÚNG MỤC TIÊU (CAMERA AIM SNAP AN TOÀN)
--- ==============================================================================
 RunService.RenderStepped:Connect(function()
-    if getgenv().UR_SilentConfig.SilentAim.Enabled then
-        local targetPart = GetFOVSilentTarget()
-        if targetPart and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            -- Tự động hướng camera bám sát mục tiêu trong vòng FOV khi bấm chuột phải ngắm bắn
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+    pcall(function()
+        if getgenv().UR_SilentConfig.SilentAim.Enabled then
+            local targetPart = GetFOVSilentTarget()
+            if targetPart and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+            end
         end
-    end
+    end)
 end)
 
-
 -- ==============================================================================
--- 6. ESP BÁN KÍNH 50M (~150 STUDS)
+-- 5. ESP 50M AN TOÀN (KHÔNG LỖI MEMORY LEAK)
 -- ==============================================================================
 local espFolder = Instance.new("Folder", ProtectedGui)
-espFolder.Name = "UR_TrueSilent_ESP"
+espFolder.Name = "UR_Safe_ESP"
 
 RunService.RenderStepped:Connect(function()
-    espFolder:ClearAllChildren()
-    if not getgenv().UR_SilentConfig.ESP.Enabled then return end
-    
-    local localChar = LocalPlayer.Character
-    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
-    local localHrp = localChar.HumanoidRootPart
+    pcall(function()
+        espFolder:ClearAllChildren()
+        if not getgenv().UR_SilentConfig.ESP.Enabled then return end
+        
+        local localChar = LocalPlayer.Character
+        if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
+        local localHrp = localChar.HumanoidRootPart
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            
-            if hrp and hum and hum.Health > 0 then
-                local dist = (hrp.Position - localHrp.Position).Magnitude
-                if dist <= getgenv().UR_SilentConfig.ESP.MaxDistance then
-                    local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    if onScreen then
-                        local bill = Instance.new("BillboardGui", espFolder)
-                        bill.Adornee = hrp
-                        bill.Size = UDim2.new(0, 100, 0, 30)
-                        bill.AlwaysOnTop = true
-                        
-                        local txt = Instance.new("TextLabel", bill)
-                        txt.Size = UDim2.new(1, 0, 1, 0)
-                        txt.BackgroundTransparency = 1
-                        txt.TextColor3 = Color3.fromRGB(255, 170, 0)
-                        txt.Font = Enum.Font.GothamBold
-                        txt.TextSize = 11
-                        txt.TextStrokeTransparency = 0
-                        txt.Text = player.Name .. "\n[" .. math.floor(dist / 3) + 1 .. "m]"
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                local hum = player.Character:FindFirstChildOfClass("Humanoid")
+                
+                if hrp and hum and hum.Health > 0 then
+                    local dist = (hrp.Position - localHrp.Position).Magnitude
+                    if dist <= getgenv().UR_SilentConfig.ESP.MaxDistance then
+                        local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                        if onScreen then
+                            local bill = Instance.new("BillboardGui", espFolder)
+                            bill.Adornee = hrp
+                            bill.Size = UDim2.new(0, 100, 0, 30)
+                            bill.AlwaysOnTop = true
+                            
+                            local txt = Instance.new("TextLabel", bill)
+                            txt.Size = UDim2.new(1, 0, 1, 0)
+                            txt.BackgroundTransparency = 1
+                            txt.TextColor3 = Color3.fromRGB(255, 170, 0)
+                            txt.Font = Enum.Font.GothamBold
+                            txt.TextSize = 11
+                            txt.TextStrokeTransparency = 0
+                            txt.Text = player.Name .. "\n[" .. math.floor(dist / 3) + 1 .. "m]"
+                        end
                     end
                 end
             end
         end
-    end
+    end)
 end)
 
-
 -- ==============================================================================
--- 7. NO RECOIL (CHỐNG RUNG TÂM SÚNG)
+-- 6. NO RECOIL (CHỐNG RUNG TÂM)
 -- ==============================================================================
 RunService.Stepped:Connect(function()
     if getgenv().UR_SilentConfig.Combat.NoRecoil then
@@ -318,4 +325,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload True Silent Hub Loaded Successfully!")
+print("Urban Reload Hub Loaded Successfully!")
