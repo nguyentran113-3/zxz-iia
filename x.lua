@@ -1,19 +1,6 @@
 -- ==============================================================================
--- URBAN RELOAD - BYPASS ANTI-CHEAT & HARD LOCK AIMBOT + SILENT AIM
+-- URBAN RELOAD - STABLE ANTI-CRASH COMBAT HUB (NO CRASH)
 -- ==============================================================================
-
--- 1. BYPASS ANTI-CHEAT (Chặn game phát hiện executor)
-pcall(function()
-    local mt = getrawmetatable(game)
-    setreadonly(mt, false)
-    local oldIndex = mt.__index
-    mt.__index = newcclosure(function(self, k)
-        if k == "WalkSpeed" or k == "JumpPower" then
-            return 16
-        end
-        return oldIndex(self, k)
-    end)
-end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -23,11 +10,11 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
 -- Xóa UI cũ nếu có
-if CoreGui:FindFirstChild("UrbanReloadBypassHub") then
-    CoreGui.UrbanReloadBypassHub:Destroy()
+if CoreGui:FindFirstChild("UrbanReloadStableHub") then
+    CoreGui.UrbanReloadStableHub:Destroy()
 end
 
--- Cấu hình Master Config
+-- Cấu hình Master Config (Đã loại bỏ các hook gây crash game)
 getgenv().UR_Config = {
     ESP = {
         Enabled = true,
@@ -36,15 +23,9 @@ getgenv().UR_Config = {
     Aimbot = {
         Enabled = false,
         Key = Enum.UserInputType.MouseButton2, -- Giữ chuột phải để dính cứng ngắt
-        Bone = "Head", -- Head, Neck, UpperTorso
-        Smoothness = 1, -- 1 là khóa cứng ngắt, tăng lên nếu muốn mượt hơn
-        FOV = 250,
-    },
-    SilentAim = {
-        Enabled = false,
-        HitPart = "UpperTorso", -- Cổ hoặc Bụng
-        CheckWall = true, -- Không bắn xuyên tường
-        FOV = 300,
+        Bone = "UpperTorso", -- Lựa chọn: Head, Neck, UpperTorso (Ưu tiên Cổ / Bụng)
+        Smoothness = 1, -- 1 là khóa cứng ngắt, tăng lên nếu muốn mượt
+        FOV = 180,
     },
     Combat = {
         NoRecoil = true,
@@ -52,17 +33,17 @@ getgenv().UR_Config = {
 }
 
 -- ==============================================================================
--- 2. GIAO DIỆN UI & CỤC TRÒN FPS NỔI
+-- 1. GIAO DIỆN UI & CỤC TRÒN FPS NỔI
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadBypassHub"
+ScreenGui.Name = "UrbanReloadStableHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 480, 0, 390)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -195)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+MainFrame.Size = UDim2.new(0, 460, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -230, 0.5, -170)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -75,8 +56,8 @@ UIStroke.Thickness = 1.5
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
-Title.Text = "   URBAN RELOAD // BYPASS & ULTIMATE HUB"
+Title.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+Title.Text = "   URBAN RELOAD // STABLE COMBAT HUB"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -87,7 +68,7 @@ Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -35, 0, 5)
-MinBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+MinBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 MinBtn.Text = "-"
 MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinBtn.Font = Enum.Font.GothamBold
@@ -99,7 +80,7 @@ Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
 local FPSWidget = Instance.new("TextButton")
 FPSWidget.Size = UDim2.new(0, 60, 0, 60)
 FPSWidget.Position = UDim2.new(0.05, 0, 0.15, 0)
-FPSWidget.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+FPSWidget.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 FPSWidget.TextColor3 = Color3.fromRGB(0, 255, 128)
 FPSWidget.Font = Enum.Font.GothamBold
 FPSWidget.TextSize = 12
@@ -129,7 +110,7 @@ local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -20, 1, -50)
 Scroll.Position = UDim2.new(0, 10, 0, 45)
 Scroll.BackgroundTransparency = 1
-Scroll.CanvasSize = UDim2.new(0, 0, 1.8, 0)
+Scroll.CanvasSize = UDim2.new(0, 0, 1.5, 0)
 Scroll.ScrollBarThickness = 3
 Scroll.Parent = MainFrame
 
@@ -139,7 +120,7 @@ Layout.Padding = UDim.new(0, 8)
 local function AddToggle(text, category, key, callback)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(1, 0, 0, 36)
-    Btn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
     Btn.Font = Enum.Font.GothamMedium
     Btn.TextSize = 12
     Btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -163,7 +144,7 @@ end
 local function AddDropdown(text, category, key, options)
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(1, 0, 0, 55)
-    Frame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
     Frame.Parent = Scroll
     Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 6)
 
@@ -181,8 +162,8 @@ local function AddDropdown(text, category, key, options)
     local Switch = Instance.new("TextButton")
     Switch.Size = UDim2.new(1, -20, 0, 22)
     Switch.Position = UDim2.new(0, 10, 0, 26)
-    Switch.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
-    Switch.Text = "Click để thay đổi tùy chọn"
+    Switch.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+    Switch.Text = "Click để thay đổi bộ phận ngắm"
     Switch.TextColor3 = Color3.fromRGB(100, 200, 255)
     Switch.Font = Enum.Font.Gotham
     Switch.TextSize = 11
@@ -199,78 +180,13 @@ local function AddDropdown(text, category, key, options)
 end
 
 AddToggle("ESP Định Vị Player (50m)", "ESP", "Enabled")
-AddToggle("Aimbot Khóa Cứng Ngắt", "Aimbot", "Enabled")
-AddDropdown("Vùng Ngắm Aimbot", "Aimbot", "Bone", {"Head", "Neck", "UpperTorso"})
-
-AddToggle("Silent Aim (Tự hút đạn chuẩn xác)", "SilentAim", "Enabled")
-AddToggle("Silent Aim Check Tường (Không xuyên vật thể)", "SilentAim", "CheckWall")
-AddDropdown("Vùng Ngắm Silent Aim (Cổ / Bụng)", "SilentAim", "HitPart", {"UpperTorso", "Neck", "Head"})
-
+AddToggle("Aimbot Khóa Cứng Ngắt / Bám Dính", "Aimbot", "Enabled")
+AddDropdown("Vùng Ngắm (Ưu tiên Cổ & Bụng)", "Aimbot", "Bone", {"UpperTorso", "Neck", "Head"})
 AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
 
 
 -- ==============================================================================
--- 3. WALL CHECK & SILENT AIM LOGIC
--- ==============================================================================
-local function IsTargetVisible(targetPart)
-    if not getgenv().UR_Config.SilentAim.CheckWall then return true end
-    local origin = Camera.CFrame.Position
-    local direction = targetPart.Position - origin
-    
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local result = workspace:Raycast(origin, direction, params)
-    if result then
-        return result.Instance:IsDescendantOf(targetPart.Parent)
-    end
-    return true
-end
-
-local function GetClosestSilentTarget()
-    local target, shortestDist = nil, getgenv().UR_Config.SilentAim.FOV
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then
-                local part = player.Character:FindFirstChild(getgenv().UR_Config.SilentAim.HitPart)
-                if part and IsTargetVisible(part) then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                    if onScreen then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        if dist < shortestDist then
-                            shortestDist = dist
-                            target = part
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return target
-end
-
-pcall(function()
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-        if getgenv().UR_Config.SilentAim.Enabled and (method == "Raycast" or method == "FireServer" or method == "fireServer") then
-            local targetPart = GetClosestSilentTarget()
-            if targetPart and method == "Raycast" then
-                args[2] = (targetPart.Position - args[1]).Unit * 1000
-                return oldNamecall(self, unpack(args))
-            end
-        end
-        return oldNamecall(self, ...)
-    end)
-end)
-
-
--- ==============================================================================
--- 4. AIMBOT HARD LOCK LOGIC
+-- 2. AIMBOT HARD LOCK LOGIC (AN TOÀN, KHÔNG CRASH, DÍNH CHẶT)
 -- ==============================================================================
 local function GetAimbotTarget()
     local target, shortestDist = nil, getgenv().UR_Config.Aimbot.FOV
@@ -303,7 +219,7 @@ RunService.RenderStepped:Connect(function()
             local currentCF = Camera.CFrame
             local targetCF = CFrame.new(currentCF.Position, targetBone.Position)
             if getgenv().UR_Config.Aimbot.Smoothness <= 1 then
-                Camera.CFrame = targetCF
+                Camera.CFrame = targetCF -- Khóa cứng ngắt vào mục tiêu
             else
                 Camera.CFrame = currentCF:Lerp(targetCF, 1 / getgenv().UR_Config.Aimbot.Smoothness)
             end
@@ -313,10 +229,10 @@ end)
 
 
 -- ==============================================================================
--- 5. ESP 50M
+-- 3. ESP 50M
 -- ==============================================================================
 local espFolder = Instance.new("Folder", CoreGui)
-espFolder.Name = "UR_ESP_Folder"
+espFolder.Name = "UR_Stable_ESP"
 
 RunService.RenderStepped:Connect(function()
     espFolder:ClearAllChildren()
@@ -356,12 +272,12 @@ end)
 
 
 -- ==============================================================================
--- 6. NO RECOIL
+-- 4. NO RECOIL (CHỐNG RUNG TÂM SÚNG)
 -- ==============================================================================
 RunService.Stepped:Connect(function()
     if getgenv().UR_Config.Combat.NoRecoil then
         pcall(function()
-            local char = LocalPlayer.Character
+            local char = LocalPlayer.Person or LocalPlayer.Character
             if char then
                 local tool = char:FindFirstChildOfClass("Tool")
                 if tool then
@@ -376,4 +292,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload Bypass & Hub Loaded!")
+print("Urban Reload Stable Hub Loaded Without Crash!")
