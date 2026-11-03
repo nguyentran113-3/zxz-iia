@@ -1,5 +1,5 @@
 -- ==============================================================================
--- URBAN RELOAD - PURE HEADSHOT SILENT AIM & 200M ESP (NO CAMERA LOCK)
+-- URBAN RELOAD - MOBILE DIRECT TOOL OVERRIDE SILENT AIM & 200M ESP
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -7,35 +7,32 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 
 local ProtectedGui = gethui and gethui() or CoreGui
 
-if ProtectedGui:FindFirstChild("UrbanReloadPureSilent") then
-    ProtectedGui.UrbanReloadPureSilent:Destroy()
+if ProtectedGui:FindFirstChild("UrbanReloadDirectSilent") then
+    ProtectedGui.UrbanReloadDirectSilent:Destroy()
 end
 
--- Master Config (Chỉ giữ lại Silent Aim Head & ESP 200m)
-getgenv().UR_PureConfig = {
+getgenv().UR_DirectConfig = {
     SilentAim = {
         Enabled = true,
         TeamCheck = true,
-        CheckWall = true,        -- Không bắn xuyên tường
-        HitPart = "Head",        -- Bắt buộc nhắm trúng ĐẦU 100%
-        FOVRadius = 160,         -- Vòng FOV vàng cam
+        CheckWall = true,
+        FOVRadius = 160,
         ShowFOV = true,
     },
     ESP = {
         Enabled = true,
-        MaxDistance = 600,       -- Tầm nhìn ESP xa 200m (~600 studs)
+        MaxDistance = 600, -- 200m (~600 studs)
     }
 }
 
 -- ==============================================================================
--- 1. VÒNG TRÒN FOV VÀNG CAM (AN TOÀN CHO MOBILE)
+-- 1. VÒNG TRÒN FOV VÀNG CAM
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadPureSilent"
+ScreenGui.Name = "UrbanReloadDirectSilent"
 ScreenGui.Parent = ProtectedGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -58,8 +55,8 @@ FOVCorner.Parent = FOVFrame
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if getgenv().UR_PureConfig.SilentAim.Enabled and getgenv().UR_PureConfig.SilentAim.ShowFOV then
-            local radius = getgenv().UR_PureConfig.SilentAim.FOVRadius
+        if getgenv().UR_DirectConfig.SilentAim.Enabled and getgenv().UR_DirectConfig.SilentAim.ShowFOV then
+            local radius = getgenv().UR_DirectConfig.SilentAim.FOVRadius
             FOVFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
             FOVFrame.Visible = true
         else
@@ -69,11 +66,11 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==============================================================================
--- 2. GIAO DIỆN MENU GỌN NHẸ (CHỈ CÓ BẬT/TẮT SILENT AIM & ESP)
+-- 2. GIAO DIỆN MENU GỌN NHẸ
 -- ==============================================================================
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 360, 0, 200)
-MainFrame.Position = UDim2.new(0.5, -180, 0.5, -100)
+MainFrame.Size = UDim2.new(0, 360, 0, 180)
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -90)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -88,7 +85,7 @@ UIStroke.Thickness = 1.5
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 35)
 TitleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-TitleBar.Text = "   URBAN RELOAD // PURE HEADSHOT SILENT"
+TitleBar.Text = "   URBAN RELOAD // MOBILE SILENT AIM"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 11
@@ -108,27 +105,26 @@ local function AddToggle(text, category, key, yPos)
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
 
     local function refresh()
-        local state = getgenv().UR_PureConfig[category][key]
-        Btn.Text = "   " .. text .. ": " .. (state and "[ ON ]" or "[ OFF ]")
+        local state = getgenv().UR_DirectConfig[category][key]
+        Btn.Text = "   " + text + ": " + (state and "[ ON ]" or "[ OFF ]")
         Btn.TextColor3 = state and Color3.fromRGB(255, 170, 0) or Color3.fromRGB(170, 170, 170)
     end
     refresh()
 
     Btn.MouseButton1Click:Connect(function()
-        getgenv().UR_PureConfig[category][key] = not getgenv().UR_PureConfig[category][key]
+        getgenv().UR_DirectConfig[category][key] = not getgenv().UR_DirectConfig[category][key]
         refresh()
     end)
 end
 
 AddToggle("Silent Aim (Đầu 100%)", "SilentAim", "Enabled", 45)
-AddToggle("Check Tường (Wall Check)", "SilentAim", "CheckWall", 90)
-AddToggle("ESP 200m", "ESP", "Enabled", 135)
+AddToggle("ESP 200m", "ESP", "Enabled", 95)
 
 -- ==============================================================================
--- 3. WALL CHECK AN TOÀN
+-- 3. WALL CHECK
 -- ==============================================================================
 local function IsVisible(targetPart)
-    if not getgenv().UR_PureConfig.SilentAim.CheckWall then return true end
+    if not getgenv().UR_DirectConfig.SilentAim.CheckWall then return true end
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
     
@@ -145,23 +141,23 @@ local function IsVisible(targetPart)
 end
 
 -- ==============================================================================
--- 4. TÌM ĐẦU MỤC TIÊU TRONG VÒNG FOV
+-- 4. TÌM ĐẦU MỤC TIÊU TRONG FOV
 -- ==============================================================================
 local function GetHeadTarget()
-    local target, shortestDist = nil, getgenv().UR_PureConfig.SilentAim.FOVRadius
+    local target, shortestDist = nil, getgenv().UR_DirectConfig.SilentAim.FOVRadius
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            if not (getgenv().UR_PureConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
+            if not (getgenv().UR_DirectConfig.SilentAim.TeamCheck and player.Team == LocalPlayer.Team) then
                 local char = player.Character
                 if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                    local head = char:FindFirstChild("Head") -- Chỉ nhắm vào ĐẦU
+                    local head = char:FindFirstChild("Head")
                     if head and IsVisible(head) then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
                         if onScreen then
                             local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
-                            if dist <= getgenv().UR_PureConfig.SilentAim.FOVRadius and dist < shortestDist then
+                            if dist <= getgenv().UR_DirectConfig.SilentAim.FOVRadius and dist < shortestDist then
                                 shortestDist = dist
                                 target = head
                             end
@@ -175,68 +171,30 @@ local function GetHeadTarget()
 end
 
 -- ==============================================================================
--- 5. PURE SILENT AIM HOOK (ĐẠN TỰ ĐỘNG BẺ VỀ ĐẦU, CAMERA KHÔNG HỀ BỊ KHÓA)
+-- 5. MOBILE SILENT AIM HOOK TRỰC TIẾP VÀO RAYCAST GỐC CỦA GAME
 -- ==============================================================================
 pcall(function()
-    local mt = getrawmetatable(game)
-    setreadonly(mt, false)
-    local oldIndex = mt.__index
-    
-    mt.__index = newcclosure(function(self, key)
-        if getgenv().UR_PureConfig.SilentAim.Enabled and not checkcaller() then
-            if self == Mouse and (key == "Hit" or key == "Target") then
-                local head = GetHeadTarget()
-                if head then
-                    if key == "Hit" then
-                        return head.CFrame
-                    elseif key == "Target" then
-                        return head
-                    end
-                end
+    local oldRaycast
+    oldRaycast = hookfunction(workspace.Raycast, function(self, origin, direction, params)
+        if getgenv().UR_DirectConfig.SilentAim.Enabled and not checkcaller() then
+            local head = GetHeadTarget()
+            if head then
+                -- Bẻ trực tiếp hướng vector tia đạn găm thẳng vào đầu địch
+                direction = (head.Position - origin).Unit * 1000
             end
         end
-        return oldIndex(self, key)
+        return oldRaycast(self, origin, direction, params)
     end)
-    setreadonly(mt, true)
-end)
-
-pcall(function()
-    local mt = getrawmetatable(game)
-    setreadonly(mt, false)
-    local oldNamecall = mt.__namecall
-    
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-        
-        if getgenv().UR_PureConfig.SilentAim.Enabled and not checkcaller() then
-            if method == "Raycast" or method == "FindPartOnRay" then
-                local head = GetHeadTarget()
-                if head then
-                    if method == "Raycast" then
-                        local origin = args[1]
-                        args[2] = (head.Position - origin).Unit * 1000
-                    elseif method:find("FindPartOnRay") then
-                        local origin = args[1].Origin
-                        args[1] = Ray.new(origin, (head.Position - origin).Unit * 1000)
-                    end
-                    return oldNamecall(self, unpack(args))
-                end
-            end
-        end
-        return oldNamecall(self, unpack(args))
-    end)
-    setreadonly(mt, true)
 end)
 
 -- ==============================================================================
--- 6. ESP 200M ỔN ĐỊNH KHÔNG BAO GIỜ MẤT
+-- 6. ESP 200M ỔN ĐỊNH
 -- ==============================================================================
 local activeESPs = {}
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if not getgenv().UR_PureConfig.ESP.Enabled then
+        if not getgenv().UR_DirectConfig.ESP.Enabled then
             for _, gui in pairs(activeESPs) do if gui then gui:Destroy() end end
             activeESPs = {}
             return
@@ -255,7 +213,7 @@ RunService.RenderStepped:Connect(function()
                 
                 if hrp and hum and hum.Health > 0 then
                     local dist = (hrp.Position - localHrp.Position).Magnitude
-                    if dist <= getgenv().UR_PureConfig.ESP.MaxDistance then
+                    if dist <= getgenv().UR_DirectConfig.ESP.MaxDistance then
                         currentPlayers[player] = true
                         
                         local bill = activeESPs[player]
@@ -297,4 +255,4 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
-print("Urban Reload Pure Headshot Silent Aim & 200m ESP Loaded!")
+print("Urban Reload Mobile Direct Silent Aim Loaded!")
