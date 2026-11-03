@@ -1,6 +1,19 @@
 -- ==============================================================================
--- URBAN RELOAD - ULTIMATE HARD LOCK AIMBOT & TRUE SILENT AIM SCRIPT
+-- URBAN RELOAD - BYPASS ANTI-CHEAT & HARD LOCK AIMBOT + SILENT AIM
 -- ==============================================================================
+
+-- 1. BYPASS ANTI-CHEAT (Chặn game phát hiện executor)
+pcall(function()
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local oldIndex = mt.__index
+    mt.__index = newcclosure(function(self, k)
+        if k == "WalkSpeed" or k == "JumpPower" then
+            return 16
+        end
+        return oldIndex(self, k)
+    end)
+end)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,8 +23,8 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
 -- Xóa UI cũ nếu có
-if CoreGui:FindFirstChild("UrbanReloadUltimateHub") then
-    CoreGui.UrbanReloadUltimateHub:Destroy()
+if CoreGui:FindFirstChild("UrbanReloadBypassHub") then
+    CoreGui.UrbanReloadBypassHub:Destroy()
 end
 
 -- Cấu hình Master Config
@@ -24,14 +37,13 @@ getgenv().UR_Config = {
         Enabled = false,
         Key = Enum.UserInputType.MouseButton2, -- Giữ chuột phải để dính cứng ngắt
         Bone = "Head", -- Head, Neck, UpperTorso
-        LockType = "Hard", -- "Hard" (Khóa cứng ngắt) hoặc "Smooth" (Mượt)
-        Smoothness = 1, -- Giá trị từ 1 (Cứng ngắt) đến 10 (Mượt)
-        FOV = 200,
+        Smoothness = 1, -- 1 là khóa cứng ngắt, tăng lên nếu muốn mượt hơn
+        FOV = 250,
     },
     SilentAim = {
         Enabled = false,
-        HitPart = "UpperTorso", -- Ưu tiên Cổ hoặc Bụng
-        CheckWall = true, -- Không bao giờ bắn xuyên tường (Check Raycast)
+        HitPart = "UpperTorso", -- Cổ hoặc Bụng
+        CheckWall = true, -- Không bắn xuyên tường
         FOV = 300,
     },
     Combat = {
@@ -40,10 +52,10 @@ getgenv().UR_Config = {
 }
 
 -- ==============================================================================
--- 1. GIAO DIỆN UI & CỤC TRÒN FPS NỔI
+-- 2. GIAO DIỆN UI & CỤC TRÒN FPS NỔI
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadUltimateHub"
+ScreenGui.Name = "UrbanReloadBypassHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -64,7 +76,7 @@ UIStroke.Thickness = 1.5
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
-Title.Text = "   URBAN RELOAD // ULTIMATE COMBAT HUB"
+Title.Text = "   URBAN RELOAD // BYPASS & ULTIMATE HUB"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -113,7 +125,6 @@ end)
 MinBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; FPSWidget.Visible = true end)
 FPSWidget.MouseButton1Click:Connect(function() MainFrame.Visible = true; FPSWidget.Visible = false end)
 
--- Menu Elements Container
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -20, 1, -50)
 Scroll.Position = UDim2.new(0, 10, 0, 45)
@@ -187,7 +198,6 @@ local function AddDropdown(text, category, key, options)
     end)
 end
 
--- Xây dựng các nút trong menu
 AddToggle("ESP Định Vị Player (50m)", "ESP", "Enabled")
 AddToggle("Aimbot Khóa Cứng Ngắt", "Aimbot", "Enabled")
 AddDropdown("Vùng Ngắm Aimbot", "Aimbot", "Bone", {"Head", "Neck", "UpperTorso"})
@@ -197,18 +207,10 @@ AddToggle("Silent Aim Check Tường (Không xuyên vật thể)", "SilentAim", 
 AddDropdown("Vùng Ngắm Silent Aim (Cổ / Bụng)", "SilentAim", "HitPart", {"UpperTorso", "Neck", "Head"})
 
 AddToggle("Chống Rung Tâm Súng (No Recoil)", "Combat", "NoRecoil")
-AddToggle("Tăng Tốc FPS Boost", "Combat", "NoRecoil", function(state)
-    if state then
-        game:GetService("Lighting").GlobalShadows = false
-        for _, v in ipairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic end
-        end
-    end
-end)
 
 
 -- ==============================================================================
--- 2. HỆ THỐNG KIỂM TRA TẦM NHÌN (WALL CHECK TRÁNH BẮN XUYÊN TƯỜNG)
+-- 3. WALL CHECK & SILENT AIM LOGIC
 -- ==============================================================================
 local function IsTargetVisible(targetPart)
     if not getgenv().UR_Config.SilentAim.CheckWall then return true end
@@ -226,13 +228,8 @@ local function IsTargetVisible(targetPart)
     return true
 end
 
-
--- ==============================================================================
--- 3. LOGIC REAL SILENT AIM (BẮN DÍNH NGƯỜI CHUẨN XÁC)
--- ==============================================================================
 local function GetClosestSilentTarget()
     local target, shortestDist = nil, getgenv().UR_Config.SilentAim.FOV
-    
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local hum = player.Character:FindFirstChildOfClass("Humanoid")
@@ -255,29 +252,28 @@ local function GetClosestSilentTarget()
     return target
 end
 
--- Hook meta method để hướng đạn tự động bám vào player được chọn (Cổ / Bụng)
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    
-    if getgenv().UR_Config.SilentAim.Enabled and (method == "Raycast" or method == "FireServer" or method == "fireServer") then
-        local targetPart = GetClosestSilentTarget()
-        if targetPart and method == "Raycast" then
-            args[2] = (targetPart.Position - args[1]).Unit * 1000
-            return oldNamecall(self, unpack(args))
+pcall(function()
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        if getgenv().UR_Config.SilentAim.Enabled and (method == "Raycast" or method == "FireServer" or method == "fireServer") then
+            local targetPart = GetClosestSilentTarget()
+            if targetPart and method == "Raycast" then
+                args[2] = (targetPart.Position - args[1]).Unit * 1000
+                return oldNamecall(self, unpack(args))
+            end
         end
-    end
-    return oldNamecall(self, ...)
+        return oldNamecall(self, ...)
+    end)
 end)
 
 
 -- ==============================================================================
--- 4. LOGIC AIMBOT KHÓA CỨNG NGẮT VÀO MỤC TIÊU
+-- 4. AIMBOT HARD LOCK LOGIC
 -- ==============================================================================
 local function GetAimbotTarget()
     local target, shortestDist = nil, getgenv().UR_Config.Aimbot.FOV
-    
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local hum = player.Character:FindFirstChildOfClass("Humanoid")
@@ -304,12 +300,10 @@ RunService.RenderStepped:Connect(function()
     if getgenv().UR_Config.Aimbot.Enabled and UserInputService:IsMouseButtonPressed(getgenv().UR_Config.Aimbot.Key) then
         local targetBone = GetAimbotTarget()
         if targetBone then
-            -- Khóa cứng ngắt trực tiếp CFrame Camera nhắm chuẩn vào vị trí chọn (Đầu/Cổ/Bụng)
             local currentCF = Camera.CFrame
             local targetCF = CFrame.new(currentCF.Position, targetBone.Position)
-            
             if getgenv().UR_Config.Aimbot.Smoothness <= 1 then
-                Camera.CFrame = targetCF -- Khóa cứng ngắt 100%
+                Camera.CFrame = targetCF
             else
                 Camera.CFrame = currentCF:Lerp(targetCF, 1 / getgenv().UR_Config.Aimbot.Smoothness)
             end
@@ -319,7 +313,7 @@ end)
 
 
 -- ==============================================================================
--- 5. ESP 50M (HIỂN THỊ KHOẢNG CÁCH CHUẨN)
+-- 5. ESP 50M
 -- ==============================================================================
 local espFolder = Instance.new("Folder", CoreGui)
 espFolder.Name = "UR_ESP_Folder"
@@ -327,7 +321,6 @@ espFolder.Name = "UR_ESP_Folder"
 RunService.RenderStepped:Connect(function()
     espFolder:ClearAllChildren()
     if not getgenv().UR_Config.ESP.Enabled then return end
-    
     local localChar = LocalPlayer.Character
     if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
     local localHrp = localChar.HumanoidRootPart
@@ -336,10 +329,9 @@ RunService.RenderStepped:Connect(function()
         if player ~= LocalPlayer and player.Character then
             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
             local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            
             if hrp and hum and hum.Health > 0 then
                 local dist = (hrp.Position - localHrp.Position).Magnitude
-                if dist <= getgenv().UR_Config.UR_Config and dist <= getgenv().UR_Config.ESP.MaxDistance then
+                if dist <= getgenv().UR_Config.ESP.MaxDistance then
                     local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                     if onScreen then
                         local bill = Instance.new("BillboardGui", espFolder)
@@ -364,7 +356,7 @@ end)
 
 
 -- ==============================================================================
--- 6. NO RECOIL (CHỐNG RUNG TÂM SÚNG)
+-- 6. NO RECOIL
 -- ==============================================================================
 RunService.Stepped:Connect(function()
     if getgenv().UR_Config.Combat.NoRecoil then
@@ -384,4 +376,4 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-print("Urban Reload Ultimate Script Loaded Successfully!")
+print("Urban Reload Bypass & Hub Loaded!")
