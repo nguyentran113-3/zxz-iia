@@ -1,37 +1,41 @@
 -- ==============================================================================
--- URBAN RELOAD - SAFE MOBILE HUB (NO FREEZE / CLEAN ESP)
+-- URBAN RELOAD - MOBILE COMBAT AIM (100% HEADSHOT SNAP & 200M ESP)
 -- ==============================================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
 local ProtectedGui = gethui and gethui() or CoreGui
 
-if ProtectedGui:FindFirstChild("UrbanReloadSafeHub") then
-    ProtectedGui.UrbanReloadSafeHub:Destroy()
+if ProtectedGui:FindFirstChild("UrbanReloadCombatHub") then
+    ProtectedGui.UrbanReloadCombatHub:Destroy()
 end
 
-getgenv().UR_SafeConfig = {
-    SilentAim = {
+getgenv().UR_CombatConfig = {
+    Aimbot = {
         Enabled = true,
         TeamCheck = true,
-        FOVRadius = 160,
+        CheckWall = true,        -- Không ngắm xuyên tường để an toàn
+        HitPart = "Head",        -- Nhắm thẳng vào ĐẦU 100%
+        FOVRadius = 160,         -- Vòng FOV vàng cam
         ShowFOV = true,
+        Smoothness = 2,          -- Độ mượt chớp nhoáng khi bóp cò
     },
     ESP = {
         Enabled = true,
-        MaxDistance = 600, -- 200m (~600 studs)
+        MaxDistance = 600,       -- ESP 200m (~600 studs)
     }
 }
 
 -- ==============================================================================
--- 1. VÒNG TRÒN FOV VÀNG CAM AN TOÀN TRÊN MOBILE
+-- 1. VÒNG TRÒN FOV VÀNG CAM AN TOÀN
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadSafeHub"
+ScreenGui.Name = "UrbanReloadCombatHub"
 ScreenGui.Parent = ProtectedGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -54,8 +58,8 @@ FOVCorner.Parent = FOVFrame
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if getgenv().UR_SafeConfig.SilentAim.Enabled and getgenv().UR_SafeConfig.SilentAim.ShowFOV then
-            local radius = getgenv().UR_SafeConfig.SilentAim.FOVRadius
+        if getgenv().UR_CombatConfig.Aimbot.Enabled and getgenv().UR_CombatConfig.Aimbot.ShowFOV then
+            local radius = getgenv().UR_CombatConfig.Aimbot.FOVRadius
             FOVFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
             FOVFrame.Visible = true
         else
@@ -84,7 +88,7 @@ UIStroke.Thickness = 1.5
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 35)
 TitleBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-TitleBar.Text = "   URBAN RELOAD // SAFE MOBILE HUB"
+TitleBar.Text = "   URBAN RELOAD // COMBAT HUB"
 TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleBar.Font = Enum.Font.GothamBold
 TitleBar.TextSize = 11
@@ -104,29 +108,97 @@ local function AddToggle(text, category, key, yPos)
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
 
     local function refresh()
-        local state = getgenv().UR_SafeConfig[category][key]
+        local state = getgenv().UR_CombatConfig[category][key]
         Btn.Text = "   " .. text .. ": " .. (state and "[ ON ]" or "[ OFF ]")
         Btn.TextColor3 = state and Color3.fromRGB(255, 170, 0) or Color3.fromRGB(170, 170, 170)
     end
     refresh()
 
     Btn.MouseButton1Click:Connect(function()
-        getgenv().UR_SafeConfig[category][key] = not getgenv().UR_SafeConfig[category][key]
+        getgenv().UR_CombatConfig[category][key] = not getgenv().UR_CombatConfig[category][key]
         refresh()
     end)
 end
 
-AddToggle("Silent Aim Support", "SilentAim", "Enabled", 45)
+AddToggle("Combat Head Snap", "Aimbot", "Enabled", 45)
 AddToggle("ESP 200m", "ESP", "Enabled", 95)
 
 -- ==============================================================================
--- 3. ESP 200M ỔN ĐỊNH SIÊU MƯỢT
+-- 3. WALL CHECK AN TOÀN
+-- ==============================================================================
+local function IsVisible(targetPart)
+    if not getgenv().UR_CombatConfig.Aimbot.CheckWall then return true end
+    local origin = Camera.CFrame.Position
+    local direction = targetPart.Position - origin
+    
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.IgnoreWater = true
+    
+    local result = workspace:Raycast(origin, direction, params)
+    if result then
+        return result.Instance:IsDescendantOf(targetPart.Parent)
+    end
+    return true
+end
+
+-- ==============================================================================
+-- 4. TÌM ĐẦU MỤC TIÊU TRONG FOV
+-- ==============================================================================
+local function GetClosestHead()
+    local target, shortestDist = nil, getgenv().UR_CombatConfig.Aimbot.FOVRadius
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not (getgenv().UR_CombatConfig.Aimbot.TeamCheck and player.Team == LocalPlayer.Team) then
+                local char = player.Character
+                if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
+                    local head = char:FindFirstChild("Head")
+                    if head and IsVisible(head) then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                        if onScreen then
+                            local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                            if dist <= getgenv().UR_CombatConfig.Aimbot.FOVRadius and dist < shortestDist then
+                                shortestDist = dist
+                                target = head
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- ==============================================================================
+-- 5. KHI BẤM NÚT BẮN, TÂM TỰ KHÓA NGAY VÀO ĐẦU ĐỊCH TRONG FOV
+-- ==============================================================================
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if getgenv().UR_CombatConfig.Aimbot.Enabled then
+            local head = GetClosestHead()
+            if head then
+                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    local currentCFrame = Camera.CFrame
+                    local targetCFrame = CFrame.new(currentCFrame.Position, head.Position)
+                    Camera.CFrame = currentCFrame:Lerp(targetCFrame, 1 / getgenv().UR_CombatConfig.Aimbot.Smoothness)
+                end
+            end
+        end
+    end)
+end)
+
+-- ==============================================================================
+-- 6. ESP 200M ỔN ĐỊNH
 -- ==============================================================================
 local activeESPs = {}
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if not getgenv().UR_SafeConfig.ESP.Enabled then
+        if not getgenv().UR_CombatConfig.ESP.Enabled then
             for _, gui in pairs(activeESPs) do if gui then gui:Destroy() end end
             activeESPs = {}
             return
@@ -145,7 +217,7 @@ RunService.RenderStepped:Connect(function()
                 
                 if hrp and hum and hum.Health > 0 then
                     local dist = (hrp.Position - localHrp.Position).Magnitude
-                    if dist <= getgenv().UR_SafeConfig.ESP.MaxDistance then
+                    if dist <= getgenv().UR_CombatConfig.ESP.MaxDistance then
                         currentPlayers[player] = true
                         
                         local bill = activeESPs[player]
@@ -187,4 +259,4 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
-print("Urban Reload Safe Hub Loaded Successfully!")
+print("Urban Reload Combat Hub Loaded Successfully!")
