@@ -1,5 +1,5 @@
 -- ==============================================================================
--- URBAN RELOAD - GOD-TIER ULTIMATE COMBAT & ESP HUB (FULL CODE / ANTI-BAN)
+-- URBAN RELOAD - ULTIMATE WESTERN COMBAT & SILENT AIM HUB (MOBILE OPTIMIZED)
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -9,43 +9,46 @@ local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Anti-Ban / Secure GUI Environment
+-- Anti-Ban / Secure GUI Protection
 local ProtectedGui = (gethui and gethui()) or (syn and syn.protect_gui) or CoreGui
 
-if ProtectedGui:FindFirstChild("UrbanReloadGodHub") then
-    ProtectedGui.UrbanReloadGodHub:Destroy()
+if ProtectedGui:FindFirstChild("UrbanReloadUltimateHub") then
+    ProtectedGui.UrbanReloadUltimateHub:Destroy()
 end
 
 -- Master Configuration Hub
-getgenv().UR_GodConfig = {
-    Aimbot = {
-        Enabled = false,
+getgenv().UR_UltimateConfig = {
+    SilentAim = {
+        Enabled = true,
         TeamCheck = true,
-        CheckWall = true,
-        HitPart = "UpperTorso", -- Ưu tiên Cổ/Bụng/Ngực chuẩn xác
-        FOVRadius = 180,
+        CheckWall = true,        -- Wall check thông minh tránh bị server đá
+        HitPart = "Head",        -- Ưu tiên trúng ĐẦU / CỔ 100%
+        FOVRadius = 180,         -- Vòng FOV rộng bắt mục tiêu mượt mà
         ShowFOV = true,
-        Smoothness = 2,
     },
     ESP = {
         Enabled = true,
         Box = true,
-        Lines = true,
-        Names = true,
-        MaxDistance = 600, -- Xa 200m+ (~600 studs)
+        Lines = true,           -- Tia Line từ chân mày tới địch
+        Names = true,           -- Tên + Khoảng cách (200m+)
+        MaxDistance = 800,
+    },
+    WeaponMods = {
+        NoRecoil = true,        -- Chống giật 100% (Súng thẳng tắp)
+        NoSpread = true,        -- Đạn bay chuẩn tâm không lệch hướng
+        FastReload = true,      -- Thay đạn siêu tốc
     },
     Combat = {
-        AutoJumpOnHit = false,
-        SpinBot360 = false,
-        RapidFireVisual = false,
+        AutoJumpOnHit = true,   -- Tự động nhảy né đạn khi dính dame
+        SpeedBoost = false,     -- Lách di chuyển siêu nhanh
     }
 }
 
 -- ==============================================================================
--- 1. GIAO DIỆN MENU PHONG CÁCH TÂY TỐI GIẢN & MƯỢT MÀ
+-- 1. GIAO DIỆN MENU PHONG CÁCH TÂY TỐI GIẢN (BASIC & CLEAN)
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UrbanReloadGodHub"
+ScreenGui.Name = "UrbanReloadUltimateHub"
 ScreenGui.Parent = ProtectedGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -66,8 +69,8 @@ Instance.new("UICorner", FOVFrame).CornerRadius = UDim.new(1, 0)
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if getgenv().UR_GodConfig.Aimbot.Enabled and getgenv().UR_GodConfig.Aimbot.ShowFOV then
-            local r = getgenv().UR_GodConfig.Aimbot.FOVRadius
+        if getgenv().UR_UltimateConfig.SilentAim.Enabled and getgenv().UR_UltimateConfig.SilentAim.ShowFOV then
+            local r = getgenv().UR_UltimateConfig.SilentAim.FOVRadius
             FOVFrame.Size = UDim2.new(0, r * 2, 0, r * 2)
             FOVFrame.Visible = true
         else
@@ -78,8 +81,8 @@ end)
 
 -- Main Menu Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 420, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -210, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 420, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -190)
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -95,7 +98,7 @@ MenuStroke.Thickness = 1
 local TitleBar = Instance.new("TextLabel")
 TitleBar.Size = UDim2.new(1, 0, 0, 35)
 TitleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
-TitleBar.Text = "  [ UR // GOD-TIER COMBAT HUB v3.5 ]"
+TitleBar.Text = "  [ UR // ULTIMATE WESTERN HUB v5.0 ]"
 TitleBar.TextColor3 = Color3.fromRGB(255, 170, 0)
 TitleBar.Font = Enum.Font.Code
 TitleBar.TextSize = 12
@@ -119,7 +122,7 @@ local Widget = Instance.new("TextButton")
 Widget.Size = UDim2.new(0, 55, 0, 55)
 Widget.Position = UDim2.new(0.05, 0, 0.1, 0)
 Widget.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
-Widget.Text = "GOD\nHUB"
+Widget.Text = "ULT\nHUB"
 Widget.TextColor3 = Color3.fromRGB(255, 170, 0)
 Widget.Font = Enum.Font.Code
 Widget.TextSize = 11
@@ -140,7 +143,7 @@ local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.new(1, -16, 1, -45)
 Scroll.Position = UDim2.new(0, 8, 0, 40)
 Scroll.BackgroundTransparency = 1
-Scroll.CanvasSize = UDim2.new(0, 0, 2.3, 0)
+Scroll.CanvasSize = UDim2.new(0, 0, 2.6, 0)
 Scroll.ScrollBarThickness = 2
 Scroll.Parent = MainFrame
 
@@ -170,22 +173,27 @@ local function CreateButtonToggle(name, cat, key)
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4)
 
     local function updateText()
-        local val = getgenv().UR_GodConfig[cat][key]
+        local val = getgenv().UR_UltimateConfig[cat][key]
         Btn.Text = "   " .. name .. ": " .. (val and "[ON]" or "[OFF]")
         Btn.TextColor3 = val and Color3.fromRGB(50, 255, 120) or Color3.fromRGB(200, 60, 60)
     end
     updateText()
 
     Btn.MouseButton1Click:Connect(function()
-        getgenv().UR_GodConfig[cat][key] = not getgenv().UR_GodConfig[cat][key]
+        getgenv().UR_UltimateConfig[cat][key] = not getgenv().UR_UltimateConfig[cat][key]
         updateText()
     end)
 end
 
-AddHeader("=== SMART AIMBOT (CỔ / BỤNG) ===")
-CreateButtonToggle("Bật Aimbot Tự Động", "Aimbot", "Enabled")
-CreateButtonToggle("Wall Check (Chỉ thấy mới aim)", "Aimbot", "CheckWall")
-CreateButtonToggle("Hiển Thị Vòng FOV Vàng Cam", "Aimbot", "ShowFOV")
+AddHeader("=== SILENT AIM & FOV ===")
+CreateButtonToggle("Silent Aim (Đạn tự dí đầu)", "SilentAim", "Enabled")
+CreateButtonToggle("Wall Check (Chỉ bắn thấy)", "SilentAim", "CheckWall")
+CreateButtonToggle("Hiển Thị Vòng FOV Vàng Cam", "SilentAim", "ShowFOV")
+
+AddHeader("=== WEAPON MODS (NO RECOIL / SPREAD) ===")
+CreateButtonToggle("No Recoil (Chống giật súng)", "WeaponMods", "NoRecoil")
+CreateButtonToggle("No Spread (Đạn thẳng tắp)", "WeaponMods", "NoSpread")
+CreateButtonToggle("Fast Reload (Thay đạn siêu tốc)", "WeaponMods", "FastReload")
 
 AddHeader("=== ESP MỚI (LINE, BOX, TÊN) ===")
 CreateButtonToggle("ESP Tổng Thể (200m+)", "ESP", "Enabled")
@@ -193,16 +201,16 @@ CreateButtonToggle("ESP Box (Khung kẻ địch)", "ESP", "Box")
 CreateButtonToggle("ESP Snaplines (Tia Line nối)", "ESP", "Lines")
 CreateButtonToggle("ESP Tên & Khoảng Cách", "ESP", "Names")
 
-AddHeader("=== COMBAT & FUN UTILS ===")
+AddHeader("=== COMBAT & UNBALANCED UTILS ===")
 CreateButtonToggle("Auto Jump Khi Bị Dính Dame", "Combat", "AutoJumpOnHit")
-CreateButtonToggle("SpinBot 360° (Quẩy không lệch tâm)", "Combat", "SpinBot360")
+CreateButtonToggle("Speed Boost (Lách siêu nhanh)", "Combat", "SpeedBoost")
 
 
 -- ==============================================================================
--- 2. AIMBOT ENGINE (WALL CHECK & ƯU TIÊN CỔ/BỤNG TRONG TẦM NHÌN)
+-- 2. SILENT AIM ENGINE (BẺ HƯỚNG RAYCAST VÀO ĐẦU TRONG FOV)
 -- ==============================================================================
 local function IsVisible(part)
-    if not getgenv().UR_GodConfig.Aimbot.CheckWall then return true end
+    if not getgenv().UR_UltimateConfig.SilentAim.CheckWall then return true end
     local origin = Camera.CFrame.Position
     local direction = part.Position - origin
     local params = RaycastParams.new()
@@ -216,23 +224,22 @@ local function IsVisible(part)
     return true
 end
 
-local function GetBestTarget()
-    local target, shortestDist = nil, getgenv().UR_GodConfig.Aimbot.FOVRadius
+local function GetSilentTarget()
+    local target, shortestDist = nil, getgenv().UR_UltimateConfig.SilentAim.FOVRadius
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and not (getgenv().UR_GodConfig.Aimbot.TeamCheck and p.Team == LocalPlayer.Team) then
+        if p ~= LocalPlayer and not (getgenv().UR_UltimateConfig.SilentAim.TeamCheck and p.Team == LocalPlayer.Team) then
             local char = p.Character
             if char and char:FindFirstChildOfClass("Humanoid") and char.Humanoid.Health > 0 then
-                -- Ưu tiên vùng Cổ / Ngực / Bụng
-                local part = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Head")
-                if part and IsVisible(part) then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                local head = char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso")
+                if head and IsVisible(head) then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
                     if onScreen then
                         local dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
-                        if dist <= getgenv().UR_GodConfig.Aimbot.FOVRadius and dist < shortestDist then
+                        if dist <= getgenv().UR_UltimateConfig.SilentAim.FOVRadius and dist < shortestDist then
                             shortestDist = dist
-                            target = part
+                            target = head
                         end
                     end
                 end
@@ -242,15 +249,40 @@ local function GetBestTarget()
     return target
 end
 
-RunService.RenderStepped:Connect(function()
+-- Hook Raycast để bẻ đường đạn thẳng vào đầu địch khi bóp cò
+pcall(function()
+    local oldRaycast
+    oldRaycast = hookfunction(workspace.Raycast, function(self, origin, direction, params)
+        if getgenv().UR_UltimateConfig.SilentAim.Enabled and not checkcaller() then
+            local targetPart = GetSilentTarget()
+            if targetPart then
+                direction = (targetPart.Position - origin).Unit * 1000
+            end
+        end
+        return oldRaycast(self, origin, direction, params)
+    end)
+end)
+
+
+-- ==============================================================================
+-- 3. WEAPON MODS (NO RECOIL, NO SPREAD, FAST RELOAD)
+-- ==============================================================================
+RunService.Stepped:Connect(function()
     pcall(function()
-        if getgenv().UR_GodConfig.Aimbot.Enabled then
-            local target = GetBestTarget()
-            if target then
-                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                    local camCF = Camera.CFrame
-                    local targetCF = CFrame.new(camCF.Position, target.Position)
-                    Camera.CFrame = camCF:Lerp(targetCF, 1 / getgenv().UR_GodConfig.Aimbot.Smoothness)
+        local char = LocalPlayer.Character
+        if not char then return end
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then
+            for _, v in ipairs(tool:GetDescendants()) do
+                if v:IsA("NumberValue") or v:IsA("IntValue") then
+                    local name = v.Name:lower()
+                    if getgenv().UR_UltimateConfig.WeaponMods.NoRecoil and (name:find("recoil") or name:find("camshake")) then
+                        v.Value = 0
+                    elseif getgenv().UR_UltimateConfig.WeaponMods.NoSpread and (name:find("spread") or name:find("accuracy")) then
+                        v.Value = 0
+                    elseif getgenv().UR_UltimateConfig.WeaponMods.FastReload and name:find("reload") then
+                        v.Value = v.Value * 0.3
+                    end
                 end
             end
         end
@@ -259,7 +291,7 @@ end)
 
 
 -- ==============================================================================
--- 3. ESP MỚI ĐẦY ĐỦ (BOX, LINES, NAMES ĐỘC LẬP TỐI ƯU FPS)
+-- 4. ESP MỚI ĐẦY ĐỦ (BOX, LINES, NAMES ĐỘC LẬP TỐI ƯU FPS)
 -- ==============================================================================
 local activeESPs = {}
 
@@ -272,7 +304,7 @@ end
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
-        if not getgenv().UR_GodConfig.ESP.Enabled then
+        if not getgenv().UR_UltimateConfig.ESP.Enabled then
             ClearESP()
             return
         end
@@ -293,18 +325,17 @@ RunService.RenderStepped:Connect(function()
 
                 if hrp and hum and hum.Health > 0 then
                     local dist = (hrp.Position - localHrp.Position).Magnitude
-                    if dist <= getgenv().UR_GodConfig.ESP.MaxDistance then
+                    if dist <= getgenv().UR_UltimateConfig.ESP.MaxDistance then
                         currentActive[p] = true
 
                         local bill = activeESPs[p]
                         if not bill then
                             bill = Instance.new("BillboardGui")
-                            bill.Size = UDim2.new(0, 150, 0, 60)
+                            bill.Size = UDim2.new(0, 160, 0, 70)
                             bill.StudsOffset = Vector3.new(0, 3, 0)
                             bill.AlwaysOnTop = true
                             bill.Parent = ProtectedGui
 
-                            -- Text Label cho Tên & Khoảng cách
                             local txt = Instance.new("TextLabel", bill)
                             txt.Name = "Info"
                             txt.Size = UDim2.new(1, 0, 1, 0)
@@ -320,7 +351,7 @@ RunService.RenderStepped:Connect(function()
                         bill.Adornee = hrp
                         local textLbl = bill:FindFirstChild("Info")
                         if textLbl then
-                            if getgenv().UR_GodConfig.ESP.Names then
+                            if getgenv().UR_UltimateConfig.ESP.Names then
                                 textLbl.Text = "[" .. p.Name .. "]\n[" .. math.floor(dist / 3) + 1 .. "m]"
                                 textLbl.Visible = true
                             else
@@ -343,32 +374,30 @@ end)
 
 
 -- ==============================================================================
--- 4. COMBAT UTILS (AUTO JUMP KHI DĨNH DAME & SPINBOT 360°)
+-- 5. COMBAT UTILS & UNBALANCED MODS (SPEED BOOST, AUTO JUMP)
 -- ==============================================================================
 local lastHealth = 100
 RunService.Heartbeat:Connect(function()
     pcall(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+
         -- Auto Jump khi bị mất máu (né đạn thông minh)
-        if getgenv().UR_GodConfig.Combat.AutoJumpOnHit then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChildOfClass("Humanoid") then
-                local hum = char.Humanoid
-                if hum.Health < lastHealth then
-                    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-                lastHealth = hum.Health
+        if getgenv().UR_UltimateConfig.Combat.AutoJumpOnHit and hum then
+            if hum.Health < lastHealth then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
             end
+            lastHealth = hum.Health
         end
 
-        -- SpinBot 360° khi di chuyển (làm rối mắt địch)
-        if getgenv().UR_GodConfig.Combat.SpinBot360 then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(30), 0)
-            end
+        -- Speed Boost / Lách siêu nhanh
+        if getgenv().UR_UltimateConfig.Combat.SpeedBoost and hum then
+            hum.WalkSpeed = 24
+        elseif hum and hum.WalkSpeed == 24 then
+            hum.WalkSpeed = 16
         end
     end)
 end)
 
-print("Urban Reload God-Tier Combat Hub Loaded Successfully!")
+print("Urban Reload Ultimate Western Hub Loaded Successfully!")
